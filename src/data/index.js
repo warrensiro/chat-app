@@ -19,7 +19,7 @@ const Profile_Menu = [
     icon: <Gear />,
   },
   {
-    title: "Profile",
+    title: "Logout",
     icon: <SignOut />,
   },
 ];
@@ -46,10 +46,74 @@ const Nav_Setting = [
   },
 ];
 
-const ChatList = [
+const MembersList = [
   {
     id: 0,
     img: faker.image.avatar(),
+    name: faker.name.firstName(),
+    online: true,
+  },
+  {
+    id: 1,
+    img: faker.image.avatar(),
+    name: faker.name.firstName(),
+    online: false,
+  },
+  {
+    id: 2,
+    img: faker.image.avatar(),
+    name: faker.name.firstName(),
+    online: false,
+  },
+  {
+    id: 3,
+    img: faker.image.avatar(),
+    name: faker.name.firstName(),
+    online: true,
+  },
+  {
+    id: 4,
+    img: faker.image.avatar(),
+    name: faker.name.firstName(),
+    online: false,
+  },
+];
+
+const CallLogs = [
+  {
+    id: 0,
+    img: faker.image.avatar(),
+    name: faker.name.firstName(),
+    missed: false,
+    incoming: true,
+  },
+  {
+    id: 1,
+    img: faker.image.avatar(),
+    name: faker.name.firstName(),
+    missed: false,
+    incoming: true,
+  },
+  {
+    id: 2,
+    img: faker.image.avatar(),
+    name: faker.name.firstName(),
+    missed: false,
+    incoming: false,
+  },
+  {
+    id: 3,
+    img: faker.image.avatar(),
+    name: faker.name.firstName(),
+    missed: true,
+    incoming: true,
+  },
+];
+
+const ChatList = [
+  {
+    id: 0,
+    img: faker.internet.avatar(),
     name: faker.name.firstName(),
     msg: faker.music.songName(),
     time: "9:36",
@@ -59,7 +123,7 @@ const ChatList = [
   },
   {
     id: 1,
-    img: faker.image.avatar(),
+    img: faker.internet.avatar(),
     name: faker.name.firstName(),
     msg: faker.music.songName(),
     time: "12:02",
@@ -69,7 +133,7 @@ const ChatList = [
   },
   {
     id: 2,
-    img: faker.image.avatar(),
+    img: faker.internet.avatar(),
     name: faker.name.firstName(),
     msg: faker.music.songName(),
     time: "10:35",
@@ -79,7 +143,7 @@ const ChatList = [
   },
   {
     id: 3,
-    img: faker.image.avatar(),
+    img: faker.internet.avatar(),
     name: faker.name.firstName(),
     msg: faker.music.songName(),
     time: "04:00",
@@ -89,7 +153,7 @@ const ChatList = [
   },
   {
     id: 4,
-    img: faker.image.avatar(),
+    img: faker.internet.avatar(),
     name: faker.name.firstName(),
     msg: faker.music.songName(),
     time: "08:42",
@@ -99,7 +163,7 @@ const ChatList = [
   },
   {
     id: 5,
-    img: faker.image.avatar(),
+    img: faker.internet.avatar(),
     name: faker.name.firstName(),
     msg: faker.music.songName(),
     time: "08:42",
@@ -109,7 +173,7 @@ const ChatList = [
   },
   {
     id: 6,
-    img: faker.image.avatar(),
+    img: faker.internet.avatar(),
     name: faker.name.firstName(),
     msg: faker.music.songName(),
     time: "08:42",
@@ -119,7 +183,77 @@ const ChatList = [
   },
   {
     id: 7,
-    img: faker.image.avatar(),
+    img: faker.internet.avatar(),
+    name: faker.name.firstName(),
+    msg: faker.music.songName(),
+    time: "08:42",
+    unread: 0,
+    pinned: false,
+    online: false,
+  },
+  {
+    id: 8,
+    img: faker.internet.avatar(),
+    name: faker.name.firstName(),
+    msg: faker.music.songName(),
+    time: "08:42",
+    unread: 0,
+    pinned: false,
+    online: false,
+  },
+  {
+    id: 9,
+    img: faker.internet.avatar(),
+    name: faker.name.firstName(),
+    msg: faker.music.songName(),
+    time: "08:42",
+    unread: 0,
+    pinned: false,
+    online: false,
+  },
+  {
+    id: 10,
+    img: faker.internet.avatar(),
+    name: faker.name.firstName(),
+    msg: faker.music.songName(),
+    time: "08:42",
+    unread: 0,
+    pinned: false,
+    online: false,
+  },
+  {
+    id: 11,
+    img: faker.internet.avatar(),
+    name: faker.name.firstName(),
+    msg: faker.music.songName(),
+    time: "08:42",
+    unread: 0,
+    pinned: false,
+    online: false,
+  },
+  {
+    id: 12,
+    img: faker.internet.avatar(),
+    name: faker.name.firstName(),
+    msg: faker.music.songName(),
+    time: "08:42",
+    unread: 0,
+    pinned: false,
+    online: false,
+  },
+  {
+    id: 13,
+    img: faker.internet.avatar(),
+    name: faker.name.firstName(),
+    msg: faker.music.songName(),
+    time: "08:42",
+    unread: 0,
+    pinned: false,
+    online: false,
+  },
+  {
+    id: 14,
+    img: faker.internet.avatar(),
     name: faker.name.firstName(),
     msg: faker.music.songName(),
     time: "08:42",
@@ -173,7 +307,6 @@ const Chat_History = [
     incoming: false,
     outgoing: true,
   },
-
   {
     type: "msg",
     subtype: "doc",
@@ -220,6 +353,72 @@ const Message_options = [
   },
 ];
 
+const SHARED_LINKS = [
+  {
+    type: "msg",
+    subtype: "link",
+    preview: faker.image.cats(),
+    message: "Yep, I can also do that",
+    incoming: true,
+    outgoing: false,
+  },
+  {
+    type: "msg",
+    subtype: "link",
+    preview: faker.image.cats(),
+    message: "Yep, I can also do that",
+    incoming: true,
+    outgoing: false,
+  },
+  {
+    type: "msg",
+    subtype: "link",
+    preview: faker.image.cats(),
+    message: "Yep, I can also do that",
+    incoming: true,
+    outgoing: false,
+  },
+  {
+    type: "msg",
+    subtype: "link",
+    preview: faker.image.cats(),
+    message: "Yep, I can also do that",
+    incoming: true,
+    outgoing: false,
+  },
+];
+
+const SHARED_DOCUMENTS = [
+  {
+    type: "msg",
+    subtype: "doc",
+    message: "Yes sure, here you go.",
+    incoming: true,
+    outgoing: false,
+  },
+  {
+    type: "msg",
+    subtype: "doc",
+    message: "Yes sure, here you go.",
+    incoming: true,
+    outgoing: false,
+  },
+  {
+    type: "msg",
+    subtype: "doc",
+    message: "Yes sure, here you go.",
+    incoming: true,
+    outgoing: false,
+  },
+  {
+    type: "msg",
+    subtype: "doc",
+    message: "Yes sure, here you go.",
+    incoming: true,
+    outgoing: false,
+  },
+];
+
 export {
   Profile_Menu,
   Nav_Setting,
@@ -227,4 +426,8 @@ export {
   ChatList,
   Chat_History,
   Message_options,
+  SHARED_DOCUMENTS,
+  SHARED_LINKS,
+  CallLogs,
+  MembersList,
 };
