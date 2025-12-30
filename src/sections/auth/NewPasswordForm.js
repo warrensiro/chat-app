@@ -13,22 +13,26 @@ import {
 } from "@mui/material";
 import { ControlTextField } from "../../components/Hook-Form";
 import { Eye, EyeSlash } from "phosphor-react";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useSearchParams } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { ResetPassword } from "../../redux/Slices/auth";
 
 const NewPasswordForm = () => {
+  const { queryParameter } = useSearchParams
+  const dispatch = useDispatch()
   const [showPassword, setShowPassword] = useState(false);
   const NewPasswordSchema = Yup.object().shape({
-    newPassword: Yup.string()
+    password: Yup.string()
       .min(6, "Password must be at least 6 chars")
       .required("Password is required"),
-    confirmPassword: Yup.string()
+    passwordConfirm: Yup.string()
       .required("Password is required")
-      .oneOf([Yup.ref("newPassword"), null], "Password must match"),
+      .oneOf([Yup.ref("password"), null], "Password must match"),
   });
 
   const defaultValues = {
-    newPassword: "",
-    confirmPassword: "",
+    password: "",
+    passwordConfirm: "",
   };
 
   const methods = useForm({
@@ -46,6 +50,7 @@ const NewPasswordForm = () => {
   const onSubmit = async (data) => {
     try {
       // submit data to backend
+      dispatch(ResetPassword({...data, token: queryParameter.get("token")}))
     } catch (error) {
       console.log(error);
       reset();
@@ -62,7 +67,7 @@ const NewPasswordForm = () => {
           <Alert severity="error">{errors.afterSubmit.message}</Alert>
         )}
         <ControlTextField
-          name="newPassword"
+          name="password"
           label="newPassword"
           type={showPassword ? "text" : "password"}
           InputProps={{
@@ -80,8 +85,8 @@ const NewPasswordForm = () => {
           }}
         />
         <ControlTextField
-          name="confirmPassword"
-          label="confirmPassword"
+          name="passwordConfirm"
+          label="passwordConfirm"
           type={showPassword ? "text" : "password"}
           InputProps={{
             endAdornment: (
