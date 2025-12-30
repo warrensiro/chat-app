@@ -52,3 +52,11 @@ export function LoginUser(formValues) {
       });
   };
 }
+
+
+// actions - sign out
+export function LogoutUser() {
+  return async (dispatch, getState) => {
+    dispatch(slice.actions.signOut())
+  }
+}
