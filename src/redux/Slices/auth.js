@@ -2,8 +2,8 @@ import { createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../../utils/axios";
 
 const initialState = {
-  isLoggedIn: true,
-  token: null,
+  isLoggedIn: false,
+  token: "",
   isLoading: false,
 };
 
@@ -27,6 +27,7 @@ export default slice.reducer;
 
 // actions - log in
 export function LoginUser(formValues) {
+  // formvalues are email and password
   return async (dispatch, getState) => {
     await axiosInstance
       .post(
