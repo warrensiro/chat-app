@@ -3,19 +3,50 @@ import Router from "./routes";
 // theme
 import ThemeProvider from "./theme";
 // components
-import ThemeSettings from "./components/settings"; 
-import { Box } from "@mui/material";
+import ThemeSettings from "./components/settings";
+import { Snackbar } from "@mui/material";
+import React from "react";
+import MuiAlert from "@mui/material/Alert";
+import { useDispatch, useSelector } from "react-redux";
+import { closeSnackbar } from "./redux/Slices/app";
+
+const vertical = "bottom";
+const horizontal = "center";
+
+const Alert = React.forwardRef(function Alert(props, ref) {
+  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+});
 
 function App() {
+  const dispatch = useDispatch();
+  const { open, message, severity } = useSelector((state) => state.app.snackbar);
   return (
-    <Box sx={{ height: "100vh", overflowY: "hidden" }}>
+    <>
       <ThemeProvider>
         <ThemeSettings>
           {" "}
           <Router />{" "}
         </ThemeSettings>
       </ThemeProvider>
-    </Box>
+
+      {message && open ? (
+        <Snackbar
+          anchorOrigin={{ vertical, horizontal }}
+          open={open}
+          autoHideDuration={4000}
+          key={vertical + horizontal}
+          onClose={() => {
+            dispatch(closeSnackbar());
+          }}
+        >
+          <Alert onClose={() => {}} severity={severity} sx={{ width: "100%" }}>
+            {message}
+          </Alert>
+        </Snackbar>
+      ) : (
+        <></>
+      )}
+    </>
   );
 }
 
