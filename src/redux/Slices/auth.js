@@ -1,5 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../../utils/axios";
+import { showSnackbar } from "./app";
 
 const initialState = {
   isLoggedIn: false,
@@ -55,9 +56,14 @@ export function LoginUser(formValues) {
         dispatch(
           slice.actions.logIn({ isLoggedIn: true, token: response.data.token })
         );
+
+        dispatch(
+          showSnackbar({ severity: "success", message: response.data.message })
+        );
       })
       .catch(function (error) {
         console.log(error);
+        dispatch(showSnackbar({ severity: "error", message: error.message }));
       });
   };
 }
@@ -160,7 +166,7 @@ export function RegisterUser(formValues) {
   };
 }
 
-// verify email thumbaction
+// verify email thunk action
 export function VerifyEmail(formValues) {
   return async (dispatch, getState) => {
     await axiosInstance
