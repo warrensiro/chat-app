@@ -1,8 +1,10 @@
 import { yupResolver } from "@hookform/resolvers/yup";
-import React from "react";
+import React, { useRef } from "react";
 import * as Yup from "yup";
 import FormProvider from "../../components/Hook-Form";
 import { Button, Stack } from "@mui/material";
+import RHFCodes from "../../components/Hook-Form/RHFCodes";
+import { useForm } from "react-hook-form";
 
 const VerifyForm = () => {
   // email get it from store
@@ -30,6 +32,8 @@ const VerifyForm = () => {
     defaultValues,
   });
 
+  const verifyBtnRef = useRef(null);
+
   const { handleSubmit, formState } = methods;
 
   const onSubmit = async (data) => {
@@ -43,10 +47,16 @@ const VerifyForm = () => {
     <FormProvider methods={methods} onSubmit={handleSubmit(onSubmit)}>
       <Stack spacing={3}>
         {/* custom otp input */}
-        
 
-        
+        <RHFCodes
+          keyName="code"
+          inputs={["code1", "code2", "code3", "code4", "code5", "code6"]}
+          length={6}
+          verifyButtonRef={verifyBtnRef}
+        />
+
         <Button
+          ref={verifyBtnRef}
           fullWidth
           color="inherit"
           size="large"
