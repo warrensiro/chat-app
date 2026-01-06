@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import { Archive, CircleDashed, MagnifyingGlass, Users } from "phosphor-react";
 import { useTheme } from "@mui/material/styles";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ChatList } from "../../data";
 import { SimpleBarStyle } from "../../components/Scrollbar";
 import {
@@ -18,10 +18,21 @@ import {
 } from "../../components/Search";
 import ChatElement from "../../components/ChatElement";
 import Friends from "../../sections/main/Friends";
+import { socket } from "../../socket";
+import { useSelector } from "react-redux";
+
+const user_id = window.localStorage.getItem("user_id")
 
 const Chats = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const theme = useTheme();
+  const {conversations} = useSelector((state) => state.conversation.direct_chat)
+  useEffect(() => {
+    socket.emit("get_direct_conversations", {user_id}, (data) => {
+      // data is the list of convos
+
+    })
+  }, [])
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
@@ -29,6 +40,8 @@ const Chats = () => {
   const handleOpenDialog = () => {
     setOpenDialog(true);
   };
+
+
   return (
     <>
       <Box
@@ -110,7 +123,7 @@ const Chats = () => {
                 <Typography variant="subtitle2" sx={{ color: "#565645" }}>
                   All Chats
                 </Typography>
-                {ChatList.filter((chat) => !chat.pinned).map((chat) => {
+                {conversations.filter((chat) => !chat.pinned).map((chat) => {
                   return <ChatElement key={chat.id} {...chat} />;
                 })}
               </Stack>

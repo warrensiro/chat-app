@@ -1,9 +1,18 @@
-import { Avatar, Box, Button, IconButton, Stack, Typography } from "@mui/material";
+import {
+  Avatar,
+  Box,
+  Button,
+  IconButton,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { useTheme, styled } from "@mui/material/styles";
 import StyledBadge from "./StyledBadge";
 import { socket } from "../socket";
 import React from "react";
 import { Chat } from "phosphor-react";
+
+const user_id = window.localStorage.getItem("user_id");
 
 const StyledChatBox = styled(Box)(({ theme }) => ({
   "&:hover": {
@@ -12,7 +21,6 @@ const StyledChatBox = styled(Box)(({ theme }) => ({
 }));
 
 const UserComponent = ({ firstName, lastName, _id, online, img }) => {
-  const user_id = window.localStorage.getItem("user_id");
   const name = `${firstName} ${lastName}`;
   const theme = useTheme();
   return (
@@ -62,8 +70,16 @@ const UserComponent = ({ firstName, lastName, _id, online, img }) => {
   );
 };
 
-const FriendRequestComponent = ({ firstName, lastName, _id, online, img, id }) => { // id here is the request id since it generates a new doc
-  
+const FriendRequestComponent = ({
+  firstName,
+  lastName,
+  _id,
+  online,
+  img,
+  id,
+}) => {
+  // id here is the request id since it generates a new doc
+
   const name = `${firstName} ${lastName}`;
   const theme = useTheme();
 
@@ -115,7 +131,6 @@ const FriendRequestComponent = ({ firstName, lastName, _id, online, img, id }) =
 };
 
 const FriendComponent = ({ firstName, lastName, _id, online, img }) => {
-  
   const name = `${firstName} ${lastName}`;
   const theme = useTheme();
 
@@ -151,9 +166,12 @@ const FriendComponent = ({ firstName, lastName, _id, online, img }) => {
           </Stack>
         </Stack>
         <Stack direction={"row"} spacing={2} alignItems={"center"}>
-          <IconButton onClick={() => {
-            // start a new convo
-          }}>
+          <IconButton
+            onClick={() => {
+              // start a new convo
+              socket.emit("start_conversation", { to: _id, from: user_id });
+            }}
+          >
             <Chat />
           </IconButton>
         </Stack>
