@@ -110,9 +110,9 @@ const Chats = () => {
                 <Typography variant="subtitle2" sx={{ color: "#565645" }}>
                   All Chats
                 </Typography>
-                {ChatList.filter((chat) => !chat.pinned).map((chat) => {
+                {/* {ChatList.filter((chat) => !chat.pinned).map((chat) => {
                   return <ChatElement key={chat.id} {...chat} />;
-                })}
+                })} */}
               </Stack>
             </SimpleBarStyle>
           </Stack>
