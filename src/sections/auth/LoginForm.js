@@ -29,7 +29,7 @@ const LoginForm = () => {
 
   const defaultValues = {
     email: "new@siro.com",
-    password: "new1234",
+    password: "demo1234",
   };
 
   const methods = useForm({

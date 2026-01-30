@@ -13,38 +13,57 @@ const GeneralApp = () => {
   const { sidebar } = useSelector((store) => store.app);
 
   return (
-    <Stack direction="row" sx={{ width: "100%" }}>
-      {/* Chats */}
+    <Stack
+      direction="row"
+      sx={{
+        width: "100vw",
+        height: "100vh", // ✅ ROOT HEIGHT
+        overflow: "hidden", // ✅ prevent page scroll
+      }}
+    >
+      {/* Chats (left sidebar) */}
       <Chats />
+
+      {/* Conversation area */}
       <Box
         sx={{
-          height: "100%",
-          width: sidebar.open ? "calc(100vw - 740px)" : "calc(100vw - 420px)",
+          flex: 1, // ✅ fill remaining width
+          display: "flex", // ✅ REQUIRED
+          flexDirection: "column", // ✅ REQUIRED
+          minHeight: 0, // ✅ REQUIRED
           backgroundColor:
             theme.palette.mode === "light"
               ? "#F0F4FA"
               : theme.palette.background.paper,
-          overflowX: "hidden",
+          overflow: "hidden", // ✅ prevent bleed scroll
         }}
       >
-        {/* Convo */}
         <Conversation />
       </Box>
-      {/* contact */}
-      {sidebar.open &&
-        (() => {
-          switch (sidebar.type) {
-            case "CONTACT":
-              return <Contact />;
-            case "STARRED":
-              return <StarredMessages />;
-            case "SHARED":
-              return <SharedMessages />;
 
-            default:
-              break;
-          }
-        })()}
+      {/* Right sidebar */}
+      {sidebar.open && (
+        <Box
+          sx={{
+            width: 320,
+            height: "100%",
+            overflow: "hidden",
+          }}
+        >
+          {(() => {
+            switch (sidebar.type) {
+              case "CONTACT":
+                return <Contact />;
+              case "STARRED":
+                return <StarredMessages />;
+              case "SHARED":
+                return <SharedMessages />;
+              default:
+                return null;
+            }
+          })()}
+        </Box>
+      )}
     </Stack>
   );
 };

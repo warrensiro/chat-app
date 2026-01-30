@@ -1,8 +1,15 @@
-import { Avatar, Box, Button, IconButton, Stack, Typography } from "@mui/material";
+import {
+  Avatar,
+  Box,
+  Button,
+  IconButton,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { useTheme, styled } from "@mui/material/styles";
 import StyledBadge from "./StyledBadge";
-import { socket } from "../socket";
-import React from "react";
+import { getSocket } from "../socket";
+import React, { useState } from "react";
 import { Chat } from "phosphor-react";
 
 const StyledChatBox = styled(Box)(({ theme }) => ({
@@ -11,26 +18,26 @@ const StyledChatBox = styled(Box)(({ theme }) => ({
   },
 }));
 
+// ----------------------
+// UserComponent
+// ----------------------
 const UserComponent = ({ firstName, lastName, _id, online, img }) => {
-  const user_id = window.localStorage.getItem("user_id");
+  const [sent, setSent] = useState(false);
   const name = `${firstName} ${lastName}`;
   const theme = useTheme();
+  const socket = getSocket();
+
   return (
     <StyledChatBox
       sx={{
         width: "100%",
         borderRadius: 1,
-        backGroundColor: theme.palette.background.paper,
+        backgroundColor: theme.palette.background.paper,
       }}
       p={2}
     >
-      <Stack
-        direction="row"
-        alignItems={"center"}
-        justifyContent="space-between"
-      >
+      <Stack direction="row" alignItems={"center"} justifyContent="space-between">
         <Stack direction="row" alignItems={"center"} spacing={2}>
-          {" "}
           {online ? (
             <StyledBadge
               overlap="circular"
@@ -46,15 +53,16 @@ const UserComponent = ({ firstName, lastName, _id, online, img }) => {
             <Typography variant="subtitle">{name}</Typography>
           </Stack>
         </Stack>
+
         <Stack direction={"row"} spacing={2} alignItems={"center"}>
           <Button
+            disabled={sent}
             onClick={() => {
-              socket.emit("friend_request", { to: _id, from: user_id }, () => {
-                alert("request sent");
-              });
+              if (!socket) return console.error("Socket not connected");
+              socket.emit("friend_request", { to: _id }, () => setSent(true));
             }}
           >
-            Send Request
+            {sent ? "Request Sent" : "Send Request"}
           </Button>
         </Stack>
       </Stack>
@@ -62,27 +70,25 @@ const UserComponent = ({ firstName, lastName, _id, online, img }) => {
   );
 };
 
-const FriendRequestComponent = ({ firstName, lastName, _id, online, img, id }) => { // id here is the request id since it generates a new doc
-  
+// ----------------------
+// FriendRequestComponent
+// ----------------------
+const FriendRequestComponent = ({ firstName, lastName, _id, online, img, id }) => {
   const name = `${firstName} ${lastName}`;
   const theme = useTheme();
+  const socket = getSocket();
 
   return (
     <StyledChatBox
       sx={{
         width: "100%",
         borderRadius: 1,
-        backGroundColor: theme.palette.background.paper,
+        backgroundColor: theme.palette.background.paper,
       }}
       p={2}
     >
-      <Stack
-        direction="row"
-        alignItems={"center"}
-        justifyContent="space-between"
-      >
+      <Stack direction="row" alignItems={"center"} justifyContent="space-between">
         <Stack direction="row" alignItems={"center"} spacing={2}>
-          {" "}
           {online ? (
             <StyledBadge
               overlap="circular"
@@ -98,12 +104,12 @@ const FriendRequestComponent = ({ firstName, lastName, _id, online, img, id }) =
             <Typography variant="subtitle">{name}</Typography>
           </Stack>
         </Stack>
+
         <Stack direction={"row"} spacing={2} alignItems={"center"}>
           <Button
             onClick={() => {
-              socket.emit("accept_request", { request_id: id }, () => {
-                alert("request sent");
-              });
+              if (!socket) return console.error("Socket not connected");
+              socket.emit("accept_request", { request_id: id });
             }}
           >
             Accept Request
@@ -114,27 +120,55 @@ const FriendRequestComponent = ({ firstName, lastName, _id, online, img, id }) =
   );
 };
 
-const FriendComponent = ({ firstName, lastName, _id, online, img }) => {
-  
+
+const FriendComponent = ({
+  firstName,
+  lastName,
+  _id,
+  online,
+  img,
+  onConversationStart, // callback to close modal
+}) => {
   const name = `${firstName} ${lastName}`;
   const theme = useTheme();
+  const socket = getSocket();
+
+  const handleStartConversation = () => {
+    if (!socket) return console.error("Socket not connected");
+
+    // Listen for server confirmation of conversation
+    const handleConversationStarted = ({ conversation }) => {
+      if (!conversation) return;
+
+      // Only trigger if this friend is part of the conversation
+      if (conversation.participants.some((p) => String(p._id) === String(_id))) {
+        console.log("Conversation started:", conversation._id);
+
+        // Close parent dialog
+        if (onConversationStart) onConversationStart();
+
+        // Cleanup listener
+        socket.off("conversation_started", handleConversationStarted);
+      }
+    };
+
+    socket.on("conversation_started", handleConversationStarted);
+
+    // Emit event to server
+    socket.emit("start_conversation", { to: _id });
+  };
 
   return (
     <StyledChatBox
       sx={{
         width: "100%",
         borderRadius: 1,
-        backGroundColor: theme.palette.background.paper,
+        backgroundColor: theme.palette.background.paper,
       }}
       p={2}
     >
-      <Stack
-        direction="row"
-        alignItems={"center"}
-        justifyContent="space-between"
-      >
+      <Stack direction="row" alignItems={"center"} justifyContent="space-between">
         <Stack direction="row" alignItems={"center"} spacing={2}>
-          {" "}
           {online ? (
             <StyledBadge
               overlap="circular"
@@ -150,10 +184,9 @@ const FriendComponent = ({ firstName, lastName, _id, online, img }) => {
             <Typography variant="subtitle">{name}</Typography>
           </Stack>
         </Stack>
+
         <Stack direction={"row"} spacing={2} alignItems={"center"}>
-          <IconButton onClick={() => {
-            // start a new convo
-          }}>
+          <IconButton onClick={handleStartConversation}>
             <Chat />
           </IconButton>
         </Stack>

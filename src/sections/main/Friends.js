@@ -12,76 +12,95 @@ import {
   UserComponent,
 } from "../../components/Friends";
 
-const UsersList = () => {
+const UsersList = ({ onConversationStart }) => {
   const dispatch = useDispatch();
+  const { users = [] } = useSelector((state) => state.app);
 
   useEffect(() => {
     dispatch(FetchUsers());
   }, [dispatch]);
 
-  const { users = [] } = useSelector((state) => state.app);
-
   return (
     <>
-      {users.map(
-        (
-          el,
-          idx // render user component return{" "}
-        ) => (
-          <UserComponent key={el._id} {...el} />
-        )
-      )}
+      {users.map((user) => (
+        <UserComponent
+          key={user._id}
+          {...user}
+          onConversationStart={onConversationStart} // pass callback
+        />
+      ))}
     </>
   );
 };
 
-const FriendsList = () => {
+const FriendsList = ({ onConversationStart }) => {
   const dispatch = useDispatch();
+  const { friends = [] } = useSelector((state) => state.app);
 
   useEffect(() => {
     dispatch(FetchFriends());
   }, [dispatch]);
 
-  const { friends = [] } = useSelector((state) => state.app);
-
   return (
     <>
-      {friends.map(
-        (el, idx) => {
-          return <FriendComponent key={el._id} {...el} />;
-        } // render friends component
-      )}
+      {friends.map((friend) => (
+        <FriendComponent
+          key={friend._id}
+          {...friend}
+          onConversationStart={onConversationStart} // pass callback
+        />
+      ))}
     </>
   );
 };
 
 const FriendRequestList = () => {
   const dispatch = useDispatch();
+  const { friendRequests = [] } = useSelector((state) => state.app);
 
   useEffect(() => {
     dispatch(FetchFriendRequests());
   }, [dispatch]);
 
-  const { friendRequests = [] } = useSelector((state) => state.app);
-
   return (
     <>
-      {friendRequests.map(
-        (el, idx) => {
-          return (
-            <FriendRequestComponent key={el._id} {...el.sender} id={el._id} />
-          );
-        } // render friendRequests component
-      )}
+      {friendRequests.map((request) => (
+        <FriendRequestComponent
+          key={request._id}
+          {...request.sender}
+          id={request._id}
+        />
+      ))}
     </>
   );
 };
 
-const Friends = ({ open, handleClose }) => {
-  const [value, setValue] = useState(0);
+const Friends = ({ open, handleClose, onConversationStart }) => {
+  const [tabIndex, setTabIndex] = useState(0);
+  const dispatch = useDispatch();
 
-  const handleChange = (event, newValue) => {
-    setValue(newValue);
+  // Fetch all relevant data when dialog opens
+  useEffect(() => {
+    if (!open) return;
+
+    dispatch(FetchUsers());
+    dispatch(FetchFriends());
+    dispatch(FetchFriendRequests());
+  }, [open, dispatch]);
+
+  const handleChange = (event, newValue) => setTabIndex(newValue);
+
+  const renderTabContent = () => {
+    switch (tabIndex) {
+      case 0:
+        return <UsersList onConversationStart={onConversationStart} />;
+      case 1:
+        return <FriendsList onConversationStart={onConversationStart} />;
+      case 2:
+        return <FriendRequestList />;
+      default:
+        return null;
+    }
   };
 
   return (
@@ -93,37 +112,16 @@ const Friends = ({ open, handleClose }) => {
       onClose={handleClose}
       sx={{ p: 4 }}
     >
-      <Stack p={2} sx={{ width: "100%" }}>
-        <Tabs value={value} onChange={handleChange} centered>
+      <Stack p={2}>
+        <Tabs value={tabIndex} onChange={handleChange} centered>
           <Tab label="Explore" />
           <Tab label="Friends" />
           <Tab label="Requests" />
         </Tabs>
       </Stack>
-      {/* dialog content */}
+
       <DialogContent>
-        <Stack sx={{ height: "100%" }}>
-          <Stack spacing={2.5}>
-            {(() => {
-              switch (value) {
-                case 0:
-                  // display all users
-                  return <UsersList />;
-
-                case 1:
-                  // display all friends
-                  return <FriendsList />;
-
-                case 2:
-                  // display all friend requests
-                  return <FriendRequestList />;
-
-                default:
-                  return null;
-              }
-            })()}
-          </Stack>
-        </Stack>
+        <Stack spacing={2.5}>{renderTabContent()}</Stack>
       </DialogContent>
     </Dialog>
   );

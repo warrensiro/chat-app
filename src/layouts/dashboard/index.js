@@ -3,51 +3,43 @@ import React, { useEffect } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import { useDispatch, useSelector } from "react-redux";
-import { connectSocket, socket } from "../../socket";
+import { connectSocket, getSocket } from "../../socket";
 import { showSnackbar } from "../../redux/Slices/app";
 
 const DashboardLayout = () => {
   const dispatch = useDispatch();
-
   const { isLoggedIn } = useSelector((state) => state.auth);
-
   const user_id = window.localStorage.getItem("user_id");
 
   useEffect(() => {
-    if (isLoggedIn) {
-      window.onload = function () {
-        if (!window.location.hash) {
-          window.location = window.location + "#loaded";
-          window.location.reload();
-        }
-      };
+    if (!isLoggedIn || !user_id) return;
 
-      window.onload();
+    // Get existing socket or create a new one
+    const socket = getSocket() || connectSocket(user_id);
 
-      if (!socket) {
-        connectSocket(user_id);
-      }
+    // Define event handlers
+    const handleNewFriendRequest = (data) => {
+      dispatch(showSnackbar({ severity: "success", message: data.message }));
+    };
+    const handleRequestAccepted = (data) => {
+      dispatch(showSnackbar({ severity: "success", message: data.message }));
+    };
+    const handleRequestSent = (data) => {
+      dispatch(showSnackbar({ severity: "success", message: data.message }));
+    };
 
-      // new friend request
-      socket.on("new_friend_request", (data) => {
-        dispatch(showSnackbar({ severity: "success", message: data.message }));
-      });
+    // Register socket events
+    socket.on("new_friend_request", handleNewFriendRequest);
+    socket.on("request_accepted", handleRequestAccepted);
+    socket.on("request_sent", handleRequestSent);
 
-      socket.on("request_accepted", (data) => {
-        dispatch(showSnackbar({ severity: "success", message: data.message }));
-      });
-
-      socket.on("request_sent", (data) => {
-        dispatch(showSnackbar({ severity: "success", message: data.message }));
-      });
-    }
-
+    // Cleanup on unmount
     return () => {
-      socket.off("new_friend_request")
-      socket.off("request_accepted")
-      socket.off("request_sent")
-    }
-  }, [isLoggedIn, socket]);
+      socket.off("new_friend_request", handleNewFriendRequest);
+      socket.off("request_accepted", handleRequestAccepted);
+      socket.off("request_sent", handleRequestSent);
+    };
+  }, [isLoggedIn, user_id, dispatch]);
 
   if (!isLoggedIn) {
     return <Navigate to="/auth/login" replace />;
@@ -55,7 +47,6 @@ const DashboardLayout = () => {
 
   return (
     <Stack direction="row">
-      {/* sidebar */}
       <Sidebar />
       <Outlet />
     </Stack>

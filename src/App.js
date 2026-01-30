@@ -1,14 +1,13 @@
-// routes
 import Router from "./routes";
-// theme
 import ThemeProvider from "./theme";
-// components
 import ThemeSettings from "./components/settings";
 import { Snackbar } from "@mui/material";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import MuiAlert from "@mui/material/Alert";
 import { useDispatch, useSelector } from "react-redux";
-import { closeSnackbar } from "./redux/Slices/app";
+import { closeSnackbar, setConversations } from "./redux/Slices/app";
+import { connectSocket, getSocket } from "./socket";
+import { initSocketListeners } from "./socketListeners";
 
 const vertical = "bottom";
 const horizontal = "center";
@@ -18,33 +17,66 @@ const Alert = React.forwardRef(function Alert(props, ref) {
 });
 
 function App() {
+  const { isLoggedIn } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
-  const { open, message, severity } = useSelector((state) => state.app.snackbar);
+  const { open, message, severity } = useSelector(
+    (state) => state.app.snackbar,
+  );
+  const user_id = window.localStorage.getItem("user_id");
+  const socketInitialized = useRef(false);
+
+  useEffect(() => {
+    if (!isLoggedIn || !user_id || socketInitialized.current) return;
+
+    const socketInstance = connectSocket(user_id);
+
+    socketInstance.on("connect", () => {
+      console.log("Socket connected:", socketInstance.id);
+
+      // Fetch conversations only after socket is connected
+      socketInstance.emit("get_direct_conversations", null, (conversations) => {
+        const normalized = conversations.map((c) => ({
+          ...c,
+          messages: c.messages || [],
+          unread: 0,
+        }));
+        console.log("Loaded conversations:", conversations);
+        dispatch(setConversations(normalized));
+      });
+    });
+
+    initSocketListeners(dispatch);
+
+    socketInitialized.current = true;
+
+    return () => {
+      // cleanup all socket listeners on unmount
+      const socket = getSocket();
+      if (!socket) return;
+      socket.removeAllListeners();
+    };
+  }, [isLoggedIn, user_id, dispatch]);
+
   return (
     <>
       <ThemeProvider>
         <ThemeSettings>
-          {" "}
-          <Router />{" "}
+          <Router />
         </ThemeSettings>
       </ThemeProvider>
 
-      {message && open ? (
+      {message && open && (
         <Snackbar
           anchorOrigin={{ vertical, horizontal }}
           open={open}
           autoHideDuration={4000}
           key={vertical + horizontal}
-          onClose={() => {
-            dispatch(closeSnackbar());
-          }}
+          onClose={() => dispatch(closeSnackbar())}
         >
-          <Alert onClose={() => {}} severity={severity} sx={{ width: "100%" }}>
+          <Alert severity={severity} sx={{ width: "100%" }}>
             {message}
           </Alert>
         </Snackbar>
-      ) : (
-        <></>
       )}
     </>
   );
