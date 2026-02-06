@@ -5,13 +5,33 @@ import Header from "./Header";
 import Footer from "./Footer";
 import Message from "./Message";
 
+const formatDayLabel = (date) => {
+  const msgDate = new Date(date);
+  const today = new Date();
+
+  const isToday = msgDate.toDateString() === today.toDateString();
+
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  const isYesterday = msgDate.toDateString() === yesterday.toDateString();
+
+  if (isToday) return "Today";
+  if (isYesterday) return "Yesterday";
+
+  return msgDate.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
+
 const Conversation = () => {
   const { activeConversation, typing } = useSelector((state) => state.app);
 
   const messagesEndRef = useRef(null);
   const userId = localStorage.getItem("user_id");
 
-  /* ---------------- Auto-scroll ---------------- */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [
@@ -20,7 +40,6 @@ const Conversation = () => {
     typing?.[activeConversation?._id],
   ]);
 
-  /* ---------------- Empty state ---------------- */
   if (!activeConversation) {
     return (
       <Stack
@@ -41,7 +60,6 @@ const Conversation = () => {
     ? activeConversation.messages
     : [];
 
-  /* ---------------- Typing logic ---------------- */
   const isTyping =
     typing?.[activeConversation._id] &&
     String(typing[activeConversation._id]) !== String(userId);
@@ -77,16 +95,35 @@ const Conversation = () => {
           </Typography>
         ) : (
           <>
-            {messages.map((msg) => (
-              <Message
-                key={msg._id || msg.client_id}
-                message={{
-                  ...msg,
-                  incoming: String(msg.from) !== String(userId),
-                }}
-                menu
-              />
-            ))}
+            {messages.map((msg, index) => {
+              const prevMsg = messages[index - 1];
+
+              const showDivider =
+                !prevMsg ||
+                new Date(prevMsg.createdAt).toDateString() !==
+                  new Date(msg.createdAt).toDateString();
+
+              return (
+                <React.Fragment key={msg._id || msg.client_id}>
+                  {showDivider && (
+                    <Message
+                      message={{
+                        type: "divider",
+                        text: formatDayLabel(msg.createdAt),
+                      }}
+                    />
+                  )}
+
+                  <Message
+                    message={{
+                      ...msg,
+                      incoming: String(msg.from) !== String(userId),
+                    }}
+                    menu
+                  />
+                </React.Fragment>
+              );
+            })}
 
             {/* Typing indicator */}
             {isTyping && (

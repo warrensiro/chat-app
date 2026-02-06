@@ -10,6 +10,16 @@ import { useTheme } from "@mui/material/styles";
 import StyledBadge from "./StyledBadge";
 import { PushPinSimple, PushPin } from "phosphor-react"; // Phosphor icons
 
+const formatTime = (date) => {
+  if (!date) return "";
+
+  const d = new Date(date);
+  return d.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 const ChatElement = ({
   id,
   name,
@@ -46,7 +56,7 @@ const ChatElement = ({
     >
       <Stack direction="row" alignItems="center" justifyContent="space-between">
         {/* Left: Avatar + name + last message */}
-        <Stack direction="row" spacing={2}>
+        <Stack direction="row" spacing={2} sx={{ flex: 1, minWidth: 0 }}>
           {online ? (
             <StyledBadge
               overlap="circular"
@@ -59,20 +69,33 @@ const ChatElement = ({
             <Avatar src={img || ""} alt={name} />
           )}
 
-          <Stack spacing={0.3}>
+          <Stack spacing={0.3} sx={{ minWidth: 0 }}>
             <Typography variant="subtitle2" noWrap>
               {name}
             </Typography>
-            <Typography variant="caption" color="text.secondary" noWrap>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                maxWidth: "100%",
+              }}
+            >
               {msg || "No messages yet"}
             </Typography>
           </Stack>
         </Stack>
 
         {/* Right: time + unread + pin */}
-        <Stack spacing={1} alignItems="center">
-          <Typography variant="caption" color="text.secondary">
-            {time || ""}
+        <Stack spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ whiteSpace: "nowrap" }}
+          >
+            {formatTime(time)}
           </Typography>
 
           <Stack direction="row" spacing={1} alignItems="center">

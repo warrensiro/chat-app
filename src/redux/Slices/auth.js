@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../../utils/axios";
 import { resetAppState, showSnackbar } from "./app";
-import { connectSocket } from "../../socket";
+import { connectSocket, disconnectSocket } from "../../socket";
 
 const initialState = {
   isLoggedIn: false,
@@ -9,6 +9,7 @@ const initialState = {
   isLoading: false,
   email: "",
   error: false,
+  userId: null,
 };
 
 const slice = createSlice({
@@ -18,10 +19,12 @@ const slice = createSlice({
     logIn(state, action) {
       state.isLoggedIn = action.payload.isLoggedIn;
       state.token = action.payload.token;
+      state.userId = action.payload.userId;
     },
-    signOut(state, action) {
+    signOut(state) {
       state.isLoggedIn = false;
       state.token = "";
+      state.userId = null;
     },
     updateIsLoading(state, action) {
       state.error = action.payload.error;
@@ -55,7 +58,7 @@ export function LoginUser(formValues) {
       .then(function (response) {
         console.log(response);
         dispatch(
-          slice.actions.logIn({ isLoggedIn: true, token: response.data.token })
+          slice.actions.logIn({ isLoggedIn: true, token: response.data.token, userId: response.data.user_id })
         );
         window.localStorage.setItem("user_id", response.data.user_id);
 
@@ -75,6 +78,7 @@ export function LoginUser(formValues) {
 // actions - sign out
 export function LogoutUser() {
   return async (dispatch, getState) => {
+    disconnectSocket()
     window.localStorage.removeItem("user_id");
     dispatch(resetAppState());
     dispatch(slice.actions.signOut());

@@ -3,7 +3,7 @@ import { Box, Stack, Avatar, Typography, IconButton, Divider } from "@mui/materi
 import { useTheme } from "@mui/material/styles";
 import { CaretDown, MagnifyingGlass, Phone, VideoCamera } from "phosphor-react";
 import StyledBadge from "../StyledBadge";
-import { ToggleSidebar } from "../../redux/Slices/app";
+import { toggleSidebar } from "../../redux/Slices/app";
 import { useDispatch } from "react-redux";
 
 const Header = ({ conversation }) => {
@@ -25,7 +25,7 @@ const Header = ({ conversation }) => {
       }}
     >
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ width: "100%", height: "100%" }}>
-        <Stack direction={"row"} spacing={2} onClick={() => dispatch(ToggleSidebar())}>
+        <Stack direction={"row"} spacing={2} onClick={() => dispatch(toggleSidebar())}>
           <Box>
             <StyledBadge
               overlap="circular"

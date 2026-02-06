@@ -5,7 +5,7 @@ import { Snackbar } from "@mui/material";
 import React, { useEffect, useRef } from "react";
 import MuiAlert from "@mui/material/Alert";
 import { useDispatch, useSelector } from "react-redux";
-import { closeSnackbar, setConversations } from "./redux/Slices/app";
+import { closeSnackbar, setConversations, setActiveConversation } from "./redux/Slices/app";
 import { connectSocket, getSocket } from "./socket";
 import { initSocketListeners } from "./socketListeners";
 
@@ -30,6 +30,8 @@ function App() {
 
     const socketInstance = connectSocket(user_id);
 
+    initSocketListeners(dispatch);
+
     socketInstance.on("connect", () => {
       console.log("Socket connected:", socketInstance.id);
 
@@ -42,10 +44,26 @@ function App() {
         }));
         console.log("Loaded conversations:", conversations);
         dispatch(setConversations(normalized));
+
+        // AUTO-FETCH MESSAGES FOR FIRST CONVERSATION
+        if (normalized.length > 0) {
+          socketInstance.emit(
+            "get_messages",
+            { conversation_id: normalized[0]._id },
+            (messages) => {
+              dispatch(
+                setActiveConversation({
+                  ...normalized[0],
+                  messages,
+                }),
+              );
+            },
+          );
+        }
       });
     });
 
-    initSocketListeners(dispatch);
+    
 
     socketInitialized.current = true;
 

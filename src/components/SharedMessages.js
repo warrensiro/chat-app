@@ -10,7 +10,7 @@ import {
 import { useTheme } from "@mui/material/styles";
 import React, { useState } from "react";
 import { useDispatch } from "react-redux";
-import { UpdateSidebarType } from "../redux/Slices/app";
+import { updateSidebarType } from "../redux/Slices/app";
 import { CaretLeft } from "phosphor-react";
 import { faker } from "@faker-js/faker";
 import { SHARED_DOCUMENTS, SHARED_LINKS } from "../data";
@@ -44,7 +44,7 @@ const SharedMessages = () => {
           >
             <IconButton
               onClick={() => {
-                dispatch(UpdateSidebarType("CONTACT"));
+                dispatch(updateSidebarType("CONTACT"));
               }}
             >
               <CaretLeft />

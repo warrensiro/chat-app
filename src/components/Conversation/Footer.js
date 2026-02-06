@@ -162,7 +162,8 @@ const Footer = ({ conversation }) => {
       to,
       text: message,
       type: "Text",
-      created_at: Date.now(),
+      createdAt: new Date().toISOString(),
+      status: "sent",
     };
 
     dispatch(
@@ -179,6 +180,7 @@ const Footer = ({ conversation }) => {
       message,
       type: "Text",
       client_id: clientId,
+      createdAt: optimisticMessage.createdAt,
     });
 
     socket?.emit("typing_stop", {

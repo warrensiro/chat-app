@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -7,16 +8,10 @@ import {
   Typography,
   Badge,
 } from "@mui/material";
-import {
-  Archive,
-  CircleDashed,
-  MagnifyingGlass,
-  Users,
-  PushPin,
-  PushPinSimple,
-} from "phosphor-react";
+import { Archive, CircleDashed, MagnifyingGlass, Users } from "phosphor-react";
 import { useTheme } from "@mui/material/styles";
-import React, { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+
 import { SimpleBarStyle } from "../../components/Scrollbar";
 import {
   Search,
@@ -25,35 +20,51 @@ import {
 } from "../../components/Search";
 import ChatElement from "../../components/ChatElement";
 import Friends from "../../sections/main/Friends";
-import { useSelector, useDispatch } from "react-redux";
-import { setActiveConversation, addConversation } from "../../redux/Slices/app";
+
+import { setActiveConversation } from "../../redux/Slices/app";
 import { getSocket } from "../../socket";
+import { initSocketListeners } from "../../socketListeners";
 
 const Chats = () => {
-  const [openDialog, setOpenDialog] = useState(false);
   const theme = useTheme();
   const dispatch = useDispatch();
+
+  // Redux state
   const { conversations, activeConversation, friendRequests } = useSelector(
     (state) => state.app,
   );
-  const userId = localStorage.getItem("user_id");
+  const userId = useSelector((state) => state.auth.userId);
 
-  const handleCloseDialog = () => setOpenDialog(false);
-  const handleOpenDialog = () => setOpenDialog(true);
-
+  // Local UI state
+  const [openDialog, setOpenDialog] = useState(false);
   const [pinnedChats, setPinnedChats] = useState([]);
 
-  const togglePin = (conversation) => {
-    setPinnedChats((prev) => {
-      if (prev.find((c) => c._id === conversation._id)) {
-        // unpin
-        return prev.filter((c) => c._id !== conversation._id);
-      } else {
-        // pin
-        return [conversation, ...prev];
-      }
-    });
-  };
+  // 🔁 Reset pinned chats when user changes
+  useEffect(() => {
+    setPinnedChats([]);
+  }, [userId]);
+
+  // 🔌 Initialize socket listeners per user
+  useEffect(() => {
+    if (!userId) return;
+
+    const socket = getSocket();
+    if (!socket) return;
+
+    initSocketListeners(dispatch, userId);
+
+    return () => {
+      socket.removeAllListeners();
+    };
+  }, [userId, dispatch]);
+
+  const togglePin = (conversationId) => {
+  setPinnedChats((prev) =>
+    prev.includes(conversationId)
+      ? prev.filter((id) => id !== conversationId)
+      : [conversationId, ...prev]
+  );
+};
 
   const hasNoChats = !conversations || conversations.length === 0;
 
@@ -61,33 +72,32 @@ const Chats = () => {
     <>
       <Box
         sx={{
-          position: "relative",
           width: 320,
+          height: "100vh",
           backgroundColor:
             theme.palette.mode === "light"
               ? "#F5F5F5"
               : theme.palette.background.paper,
-          boxShadow: "0px 0px 2px rgba(0, 0, 0, 0.25)",
-          overflowY: "auto",
-          overflowX: "hidden",
+          boxShadow: "0px 0px 2px rgba(0,0,0,0.25)",
+          overflow: "hidden",
         }}
       >
-        <Stack p={3} spacing={2} sx={{ height: "100vh" }}>
+        <Stack p={3} spacing={2} sx={{ height: "100%" }}>
           {/* Header */}
           <Stack
             direction="row"
-            alignItems={"center"}
             justifyContent="space-between"
+            alignItems="center"
           >
             <Typography variant="h5">Chats</Typography>
-            <Stack direction={"row"} alignItems={"center"} spacing={1}>
-              <IconButton onClick={handleOpenDialog}>
+            <Stack direction="row" spacing={1}>
+              <IconButton onClick={() => setOpenDialog(true)}>
                 <Badge
                   color="error"
                   badgeContent={
                     friendRequests.length > 9 ? "9+" : friendRequests.length
                   }
-                  invisible={!friendRequests || friendRequests.length === 0}
+                  invisible={!friendRequests?.length}
                 >
                   <Users />
                 </Badge>
@@ -99,141 +109,133 @@ const Chats = () => {
           </Stack>
 
           {/* Search */}
-          <Stack sx={{ width: "100%" }}>
-            <Search>
-              <SearchIconWrapper>
-                <MagnifyingGlass color="#789CE5" />
-              </SearchIconWrapper>
-              <StyledInputBase
-                placeholder="Search…"
-                inputProps={{ "aria-label": "search" }}
-              />
-            </Search>
-          </Stack>
+          <Search>
+            <SearchIconWrapper>
+              <MagnifyingGlass color="#789CE5" />
+            </SearchIconWrapper>
+            <StyledInputBase placeholder="Search…" />
+          </Search>
 
           {/* Archive */}
           <Stack spacing={1}>
-            <Stack direction={"row"} alignItems={"center"} spacing={1.5}>
-              <Archive size={24} />
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <Archive size={22} />
               <Button>Archive</Button>
             </Stack>
             <Divider />
           </Stack>
 
-          {/* Chats list */}
-          <Stack
-            direction={"column"}
-            sx={{ flexGrow: 1, overflowY: "auto", height: "100%" }}
-            spacing={2}
-          >
+          {/* Chat list */}
+          <Box sx={{ flexGrow: 1, overflow: "hidden" }}>
             <SimpleBarStyle
               autoHide
               timeout={800}
-              clickOnTrack={false}
               style={{ maxHeight: "100%" }}
             >
               {/* Pinned */}
-              <Stack spacing={2.4}>
-                <Typography variant="subtitle2" sx={{ color: "#565645" }}>
-                  Pinned
-                </Typography>
+              <Stack spacing={2}>
+                <Typography variant="subtitle2">Pinned</Typography>
+
                 {pinnedChats.length === 0 && (
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "text.secondary" }}
-                  >
+                  <Typography variant="caption" color="text.secondary">
                     No pinned chats
                   </Typography>
                 )}
+
                 {pinnedChats.map((conversation) => {
                   const otherUser = conversation.participants?.find(
                     (p) => String(p._id) !== String(userId),
                   );
                   if (!otherUser) return null;
 
-                  const lastMsg =
-                    conversation.messages && conversation.messages.length > 0
-                      ? conversation.messages[conversation.messages.length - 1]
-                          .text
-                      : "No messages yet";
+                  const lastMessage = conversation.messages?.at(-1);
+
+                  const lastMsg = lastMessage?.text || "No messages yet";
+                  const lastTime = lastMessage?.createdAt;
 
                   return (
                     <ChatElement
                       key={conversation._id}
                       name={`${otherUser.firstName} ${otherUser.lastName}`}
                       msg={lastMsg}
+                      time={lastTime}
                       online={otherUser.status === "Online"}
                       selected={activeConversation?._id === conversation._id}
                       onClick={() =>
-                        dispatch(setActiveConversation(conversation))
+                        dispatch(
+                          setActiveConversation({
+                            conversationId: conversation._id,
+                            userId,
+                          }),
+                        )
                       }
-                      pinned
                       togglePin={() => togglePin(conversation)}
                       unread={conversation.unread}
+                      pinned={true}
                     />
                   );
                 })}
               </Stack>
 
-              {/* Divider */}
-              <Divider />
+              <Divider sx={{ my: 2 }} />
 
-              {/* All Chats */}
-              <Stack spacing={2.4}>
-                <Typography variant="subtitle2" sx={{ color: "#565645" }}>
-                  All Chats
-                </Typography>
+              {/* All chats */}
+              <Stack spacing={2}>
+                <Typography variant="subtitle2">All Chats</Typography>
 
                 {hasNoChats ? (
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "text.secondary" }}
-                  >
+                  <Typography variant="caption" color="text.secondary">
                     No conversations yet
                   </Typography>
                 ) : (
                   conversations
-                    .filter((c) => !pinnedChats.find((p) => p._id === c._id))
+                    .filter((c) => !pinnedChats.includes(c._id))
                     .map((conversation) => {
                       const otherUser = conversation.participants?.find(
                         (p) => String(p._id) !== String(userId),
                       );
                       if (!otherUser) return null;
 
-                      const lastMsg =
-                        conversation.messages &&
-                        conversation.messages.length > 0
-                          ? conversation.messages[
-                              conversation.messages.length - 1
-                            ].text
-                          : "No messages yet";
+                      const lastMessage = conversation.messages?.at(-1);
+
+                      const lastMsg = lastMessage?.text || "No messages yet";
+                      const lastTime = lastMessage?.createdAt;
+
+                      const isPinned = pinnedChats.includes(conversation._id);
 
                       return (
                         <ChatElement
                           key={conversation._id}
                           name={`${otherUser.firstName} ${otherUser.lastName}`}
                           msg={lastMsg}
+                          time={lastTime}
                           online={otherUser.status === "Online"}
                           selected={
                             activeConversation?._id === conversation._id
                           }
                           onClick={() =>
-                            dispatch(setActiveConversation(conversation))
+                            dispatch(
+                              setActiveConversation({
+                                conversationId: conversation._id,
+                                userId,
+                              }),
+                            )
                           }
-                          pinned={false}
                           togglePin={() => togglePin(conversation)}
+                          unread={conversation.unread}
+                          pinned={isPinned}
                         />
                       );
                     })
                 )}
               </Stack>
             </SimpleBarStyle>
-          </Stack>
+          </Box>
         </Stack>
       </Box>
 
       {openDialog && (
-        <Friends open={openDialog} handleClose={handleCloseDialog} />
+        <Friends open={openDialog} handleClose={() => setOpenDialog(false)} />
       )}
     </>
   );

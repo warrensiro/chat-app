@@ -4,20 +4,22 @@ import {
   FetchFriendRequests,
   FetchFriends,
   FetchUsers,
-  setActiveConversation,
   addConversation,
+  setActiveConversation,
   addMessageToActiveConversation,
   incrementUnread,
   setTyping,
   clearTyping,
+  updateMessageStatus,
 } from "./redux/Slices/app";
 import { store } from "./redux/store";
 
-export const initSocketListeners = (dispatch) => {
+export const initSocketListeners = (dispatch, userId) => {
   const socket = getSocket();
   if (!socket) return;
 
-  // const userId = localStorage.getItem("user_id");
+  // prevent duplicate listeners
+  socket.removeAllListeners();
 
   socket.on("request_sent", (data) => {
     dispatch(
@@ -53,27 +55,32 @@ export const initSocketListeners = (dispatch) => {
     dispatch(FetchUsers());
 
     if (data.conversation) {
-      dispatch(addConversation(data.conversation));
-      dispatch(setActiveConversation(data.conversation));
+      dispatch(addConversation({ conversation: data.conversation, userId }));
+      dispatch(
+        setActiveConversation({
+          conversationId: data.conversation._id,
+          userId,
+        }),
+      );
     }
   });
 
   socket.on("conversation_started", ({ conversation }) => {
-    if (!conversation || !conversation._id) return;
+    if (!conversation?._id) return;
 
-    dispatch(addConversation(conversation));
-    dispatch(setActiveConversation(conversation));
+    dispatch(addConversation({ conversation, userId }));
+    dispatch(
+      setActiveConversation({
+        conversationId: conversation._id,
+        userId,
+      }),
+    );
   });
 
   socket.on("new_message", ({ conversation_id, message, participants }) => {
     if (!conversation_id || !message) return;
 
-    const userId = localStorage.getItem("user_id");
-
-    const normalizedMessage = {
-      ...message,
-      isMine: String(message.from) === String(userId),
-    };
+    const isMine = String(message.from) === String(userId);
 
     const state = store.getState();
     const { conversations, activeConversation } = state.app;
@@ -82,35 +89,84 @@ export const initSocketListeners = (dispatch) => {
       (c) => c._id === conversation_id,
     );
 
-    // Conversation does NOT exist → create it immediately
+    // conversation does not exist yet
     if (!existingConversation) {
       dispatch(
         addConversation({
-          _id: conversation_id,
-          participants,
-          messages: [normalizedMessage],
-          unread: normalizedMessage.isMine ? 0 : 1,
+          conversation: {
+            _id: conversation_id,
+            participants,
+            messages: [
+              {
+                ...message,
+                isMine,
+              },
+            ],
+            unread: isMine ? 0 : 1,
+          },
+          userId,
         }),
       );
       return;
     }
 
-    // Conversation exists → add message
+    // add / update message
     dispatch(
       addMessageToActiveConversation({
         conversation_id,
-        message: normalizedMessage,
+        message,
+        userId,
       }),
     );
 
-    // Increment unread if NOT active & message is not mine
-    if (
-      !normalizedMessage.isMine &&
-      activeConversation?._id !== conversation_id
-    ) {
+    // increment unread if needed
+    if (!isMine && activeConversation?._id !== conversation_id) {
       dispatch(incrementUnread(conversation_id));
     }
+
+    // mark delivered for incoming messages
+    if (!isMine) {
+      socket.emit("message_delivered", {
+        conversation_id,
+        message_id: message._id,
+      });
+    }
   });
+
+  // socket.on("message_sent", ({ conversation_id, message }) => {
+  //   dispatch(
+  //     updateMessageStatus({
+  //       conversation_id,
+  //       status: "sent",
+  //       messageId: message._id,
+  //     }),
+  //   );
+  // });
+
+  socket.on("message_delivered", ({ conversation_id, message_id }) => {
+    if (!conversation_id || !message_id) return;
+
+    dispatch(
+      updateMessageStatus({
+        conversation_id,
+        messageId: message_id,
+        status: "delivered",
+      }),
+    );
+  });
+
+  socket.on("messages_read", ({ conversation_id }) => {
+    if (!conversation_id) return;
+
+    dispatch(
+      updateMessageStatus({
+        conversation_id,
+        status: "read",
+        onlyMine: true,
+      }),
+    );
+  });
+
   socket.on("typing_start", ({ conversation_id, from }) => {
     dispatch(setTyping({ conversation_id, userId: from }));
   });
