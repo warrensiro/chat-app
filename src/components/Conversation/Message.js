@@ -8,24 +8,29 @@ import {
   DocMsg,
 } from "./MessageTypes";
 
-const Message = ({ message, menu }) => {
+const Message = ({ message, menu, conversation }) => {
   if (!message) return null;
 
   const userId = localStorage.getItem("user_id");
 
-  // Divider / timeline
+  // 1️⃣ Divider / timeline
   if (message.type === "divider") {
     return <Timeline el={message} />;
   }
 
-  // Determine if the message is incoming (from other user)
+  // Enrich message with incoming flag
   const enrichedMessage = {
     ...message,
     incoming: String(message.from) !== String(userId),
   };
 
-  // Route by message subtype
-  switch (message.subtype) {
+  // 2️⃣ Replies ALWAYS win
+  if (enrichedMessage.replyTo) {
+    return <ReplyMsg el={enrichedMessage} menu={menu} conversation={conversation} />;
+  }
+
+  // 3️⃣ Route by subtype / type
+  switch (enrichedMessage.subtype || enrichedMessage.type) {
     case "Media":
       return <MediaMsg el={enrichedMessage} menu={menu} />;
 
@@ -34,9 +39,6 @@ const Message = ({ message, menu }) => {
 
     case "Link":
       return <LinkMsg el={enrichedMessage} menu={menu} />;
-
-    case "Reply":
-      return <ReplyMsg el={enrichedMessage} menu={menu} />;
 
     case "Text":
     default:

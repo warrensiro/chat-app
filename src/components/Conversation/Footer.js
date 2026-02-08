@@ -7,6 +7,7 @@ import {
   TextField,
   Fab,
   Tooltip,
+  Typography,
 } from "@mui/material";
 import { styled, useTheme } from "@mui/material/styles";
 import {
@@ -18,20 +19,30 @@ import {
   LinkSimple,
   PaperPlaneTilt,
   Smiley,
+  X,
 } from "phosphor-react";
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
 import { getSocket } from "../../socket";
-import { useDispatch } from "react-redux";
-import { addMessageToActiveConversation } from "../../redux/Slices/app";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  addMessageToActiveConversation,
+  clearReplyTo,
+} from "../../redux/Slices/app";
 
-const StyledInput = styled(TextField)(({ theme }) => ({
+/* ---------------------------------- */
+/* Styled Input */
+/* ---------------------------------- */
+const StyledInput = styled(TextField)(() => ({
   "& .MuiInputBase-Input": {
     paddingTop: "12px",
     paddingBottom: "12px",
   },
 }));
 
+/* ---------------------------------- */
+/* Attachment Actions */
+/* ---------------------------------- */
 const Actions = [
   { color: "#4da5fe", icon: <Image size={24} />, y: 102, title: "Photo/Video" },
   { color: "#1b8cfe", icon: <Sticker size={24} />, y: 172, title: "Stickers" },
@@ -113,36 +124,33 @@ const ChatInput = ({
 };
 
 /* ---------------------------------- */
-/* Footer */
+/* Footer Component */
 /* ---------------------------------- */
 const Footer = ({ conversation }) => {
   const dispatch = useDispatch();
   const theme = useTheme();
+  const socket = getSocket();
+
+  const { replyTo } = useSelector((state) => state.app);
 
   const [message, setMessage] = useState("");
   const [openPicker, setOpenPicker] = useState(false);
-
-  const socket = getSocket();
   const typingTimeout = useRef(null);
+  const userId = localStorage.getItem("user_id");
 
-  /* ---------- typing indicator ---------- */
+  /* ---------- Typing Indicator ---------- */
   const handleTyping = () => {
     if (!socket || !conversation?._id) return;
 
-    socket.emit("typing_start", {
-      conversation_id: conversation._id,
-    });
+    socket.emit("typing_start", { conversation_id: conversation._id });
 
     clearTimeout(typingTimeout.current);
-
     typingTimeout.current = setTimeout(() => {
-      socket.emit("typing_stop", {
-        conversation_id: conversation._id,
-      });
+      socket.emit("typing_stop", { conversation_id: conversation._id });
     }, 1000);
   };
 
-  /* ---------- send message ---------- */
+  /* ---------- Send Message ---------- */
   const handleSendMessage = () => {
     if (!message.trim() || !conversation?._id) return;
 
@@ -155,15 +163,39 @@ const Footer = ({ conversation }) => {
 
     const clientId = crypto.randomUUID();
 
+    // Determine the name of the message being replied to
+    let replyFromName = null;
+    if (replyTo) {
+      if (replyTo.from === userId) {
+        replyFromName = "You";
+      } else if (replyTo.fromName) {
+        replyFromName = replyTo.fromName; // Already present
+      } else {
+        // Find the participant's name from the conversation
+        const participant = conversation.participants.find(
+          (p) => String(p._id) === String(replyTo.from),
+        );
+        replyFromName = participant?.name || "Them";
+      }
+    }
+
     const optimisticMessage = {
       _id: clientId,
       client_id: clientId,
       from: userId,
       to,
       text: message,
-      type: "Text",
+      subtype: replyTo ? "Reply" : "Text",
       createdAt: new Date().toISOString(),
       status: "sent",
+      replyTo: replyTo
+        ? {
+            _id: replyTo._id,
+            text: replyTo.text,
+            from: replyTo.from,
+            fromName: replyFromName,
+          }
+        : null,
     };
 
     dispatch(
@@ -181,12 +213,14 @@ const Footer = ({ conversation }) => {
       type: "Text",
       client_id: clientId,
       createdAt: optimisticMessage.createdAt,
+      replyTo: optimisticMessage.replyTo,
     });
 
     socket?.emit("typing_stop", {
       conversation_id: conversation._id,
     });
 
+    dispatch(clearReplyTo());
     setMessage("");
   };
 
@@ -202,9 +236,79 @@ const Footer = ({ conversation }) => {
         boxShadow: "0px -1px 2px rgba(0, 0, 0, 0.1)",
       }}
     >
+      {/* Reply Preview */}
+      {replyTo && (
+        <Box
+          mb={1}
+          px={2}
+          py={1}
+          sx={{
+            borderLeft: `4px solid ${theme.palette.primary.main}`,
+            backgroundColor: theme.palette.action.hover,
+            borderRadius: 1,
+          }}
+        >
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <Stack spacing={0.3} sx={{ maxWidth: "90%" }}>
+              {/* Label */}
+              <Typography variant="caption" color="text.secondary">
+                Replying to
+              </Typography>
+
+              {/* Sender's Name */}
+              <Typography
+                variant="caption"
+                fontWeight={600}
+                color="text.secondary"
+              >
+                {replyTo.from === userId
+                  ? "You"
+                  : replyTo.fromName ||
+                    conversation.participants.find(
+                      (p) => String(p._id) === String(replyTo.from),
+                    )?.name ||
+                    "Them"}
+              </Typography>
+
+              {/* Replied Text */}
+              <Typography
+                variant="body2"
+                sx={{ display: "block", mt: 0.2 }}
+                color="text.secondary"
+                noWrap
+              >
+                {replyTo.text}
+              </Typography>
+
+              {/* Timestamp */}
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block", textAlign: "right", mt: 0.2 }}
+              >
+                {replyTo.createdAt
+                  ? new Date(replyTo.createdAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : ""}
+              </Typography>
+            </Stack>
+
+            <IconButton size="small" onClick={() => dispatch(clearReplyTo())}>
+              <X size={14} />
+            </IconButton>
+          </Stack>
+        </Box>
+      )}
+
+      {/* Input */}
       <Stack direction="row" alignItems="center" spacing={2}>
         <Stack sx={{ width: "100%" }}>
-          {/* Emoji Picker */}
           {openPicker && (
             <Box
               sx={{

@@ -17,6 +17,7 @@ const initialState = {
   conversations: [],
   activeConversation: null,
   typing: {},
+  replyTo: null,
 };
 
 const slice = createSlice({
@@ -120,6 +121,7 @@ const slice = createSlice({
       const normalizedMessage = {
         ...message,
         isMine: String(message.from) === String(userId),
+        replyTo: message.replyTo ? { ...message.replyTo } : null,
       };
 
       const updateMessages = (messages = []) => {
@@ -190,6 +192,21 @@ const slice = createSlice({
           state.activeConversation.messages,
         );
       }
+    },
+
+    setReplyTo(state, action) {
+      const message = action.payload;
+      const userId = localStorage.getItem("user_id");
+
+      state.replyTo = {
+        ...message,
+        fromName:
+          message.from === userId ? "You" : message.fromName || message.from,
+      };
+    },
+
+    clearReplyTo(state) {
+      state.replyTo = null;
     },
 
     /* ───────── UNREAD ───────── */
@@ -280,4 +297,6 @@ export const {
   clearTyping,
   updateMessageStatus,
   resetAppState,
+  setReplyTo,
+  clearReplyTo,
 } = slice.actions;

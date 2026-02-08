@@ -18,6 +18,8 @@ import {
   Checks,
 } from "phosphor-react";
 import { Message_options } from "../../data";
+import { useDispatch } from "react-redux";
+import { setReplyTo } from "../../redux/Slices/app";
 
 const getAlignment = (incoming) => (incoming ? "flex-start" : "flex-end");
 const getBgColor = (incoming, theme) =>
@@ -72,7 +74,7 @@ const TextMsg = ({ el, menu }) => {
           {el.isMine && <StatusIcon status={el.status} theme={theme} />}
         </Stack>
       </Box>
-      {menu && <MessageOptions />}
+      {menu && <MessageOptions message={el} />}
     </Stack>
   );
 };
@@ -112,7 +114,7 @@ const MediaMsg = ({ el, menu }) => {
           </Typography>
         </Stack>
       </Box>
-      {menu && <MessageOptions />}
+      {menu && <MessageOptions message={el} />}
     </Stack>
   );
 };
@@ -161,44 +163,101 @@ const DocMsg = ({ el, menu }) => {
           </Typography>
         </Stack>
       </Box>
-      {menu && <MessageOptions />}
+      {menu && <MessageOptions message={el} />}
     </Stack>
   );
 };
 
-/* -------------------- */
-/* Reply Message */
-const ReplyMsg = ({ el, menu }) => {
+const ReplyMsg = ({ el, menu, conversation }) => {
   const theme = useTheme();
-  const incoming = !el.isMine;
+  const userId = localStorage.getItem("user_id");
+  const incoming = String(el.from) !== String(userId);
+
+  const participant = conversation?.participants?.find(
+    (p) => String(p._id) === String(el.replyTo.from),
+  );
+  const repliedLabel =
+    el.replyTo.from === userId
+      ? "You"
+      : el.replyTo.fromName || participant?.name || "Them";
 
   return (
-    <Stack direction="row" justifyContent={getAlignment(incoming)} mb={1}>
+    <Stack
+      direction="row"
+      justifyContent={incoming ? "flex-start" : "flex-end"}
+      mb={1}
+    >
       <Box
         p={1.5}
         sx={{
-          backgroundColor: getBgColor(incoming, theme),
+          backgroundColor: incoming
+            ? theme.palette.background.default
+            : theme.palette.primary.main,
           borderRadius: 1.5,
           maxWidth: "70%",
         }}
       >
-        <Stack spacing={1}>
-          <Typography variant="caption" color="text.secondary">
-            Reply
-          </Typography>
-          <Typography variant="body2" color={getTextColor(incoming, theme)}>
+        <Stack spacing={0.8}>
+          {/* 🔹 Quoted message */}
+          {el.replyTo && (
+            <Box
+              px={1}
+              py={0.8}
+              sx={{
+                borderLeft: `3px solid ${
+                  incoming ? theme.palette.primary.main : "#fff"
+                }`,
+                backgroundColor: incoming
+                  ? theme.palette.action.hover
+                  : "rgba(255,255,255,0.15)",
+                borderRadius: 0.5,
+              }}
+            >
+              <Typography
+                variant="caption"
+                fontWeight={600}
+                color={incoming ? "text.secondary" : "#fff"}
+              >
+                {repliedLabel}
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{ display: "block", mt: 0.2 }}
+                color={incoming ? "text.secondary" : "#fff"}
+                noWrap
+              >
+                {el.replyTo.text}
+              </Typography>
+            </Box>
+          )}
+
+          {/* 🔹 Actual message */}
+          <Typography
+            variant="body2"
+            color={incoming ? "text.primary" : "#fff"}
+          >
             {el.text}
           </Typography>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: "block", textAlign: "right" }}
+
+          {/* 🔹 Timestamp and ticks */}
+          <Stack
+            direction="row"
+            spacing={0.5}
+            justifyContent="flex-end"
+            alignItems="center"
           >
-            {formatTime(el.createdAt)}
-          </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {new Date(el.createdAt).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Typography>
+            {el.isMine && <StatusIcon status={el.status} theme={theme} />}
+          </Stack>
         </Stack>
       </Box>
-      {menu && <MessageOptions />}
+
+      {menu && <MessageOptions message={el} />}
     </Stack>
   );
 };
@@ -250,7 +309,7 @@ const LinkMsg = ({ el, menu }) => {
           </Typography>
         </Stack>
       </Box>
-      {menu && <MessageOptions />}
+      {menu && <MessageOptions message={el} />}
     </Stack>
   );
 };
@@ -304,11 +363,29 @@ const Timeline = ({ el }) => {
   );
 };
 
-/* -------------------- */
-/* Message Options */
-const MessageOptions = () => {
+const MessageOptions = ({ message }) => {
+  const dispatch = useDispatch();
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
+
+  const handleAction = (title) => {
+    setAnchorEl(null);
+
+    if (title === "Reply") {
+      dispatch(
+        setReplyTo({
+          ...message,
+          fromName:
+            message.from === localStorage.getItem("user_id")
+              ? "You"
+              : message.fromName || message.from,
+        }),
+      );
+    }
+    setAnchorEl(null);
+
+    // future actions go here
+  };
 
   return (
     <>
@@ -317,7 +394,7 @@ const MessageOptions = () => {
       </IconButton>
       <Menu anchorEl={anchorEl} open={open} onClose={() => setAnchorEl(null)}>
         {Message_options.map((el) => (
-          <MenuItem key={el.title} onClick={() => setAnchorEl(null)}>
+          <MenuItem key={el.title} onClick={() => handleAction(el.title)}>
             {el.title}
           </MenuItem>
         ))}
