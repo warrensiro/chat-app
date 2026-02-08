@@ -30,9 +30,9 @@ import {
   clearReplyTo,
 } from "../../redux/Slices/app";
 
-/* ---------------------------------- */
+/* ------------------------------ */
 /* Styled Input */
-/* ---------------------------------- */
+/* ------------------------------ */
 const StyledInput = styled(TextField)(() => ({
   "& .MuiInputBase-Input": {
     paddingTop: "12px",
@@ -40,9 +40,9 @@ const StyledInput = styled(TextField)(() => ({
   },
 }));
 
-/* ---------------------------------- */
+/* ------------------------------ */
 /* Attachment Actions */
-/* ---------------------------------- */
+/* ------------------------------ */
 const Actions = [
   { color: "#4da5fe", icon: <Image size={24} />, y: 102, title: "Photo/Video" },
   { color: "#1b8cfe", icon: <Sticker size={24} />, y: 172, title: "Stickers" },
@@ -51,9 +51,9 @@ const Actions = [
   { color: "#013f7f", icon: <User size={24} />, y: 382, title: "Contact" },
 ];
 
-/* ---------------------------------- */
+/* ------------------------------ */
 /* Chat Input Component */
-/* ---------------------------------- */
+/* ------------------------------ */
 const ChatInput = ({
   message,
   setMessage,
@@ -123,9 +123,9 @@ const ChatInput = ({
   );
 };
 
-/* ---------------------------------- */
+/* ------------------------------ */
 /* Footer Component */
-/* ---------------------------------- */
+/* ------------------------------ */
 const Footer = ({ conversation }) => {
   const dispatch = useDispatch();
   const theme = useTheme();
@@ -154,29 +154,32 @@ const Footer = ({ conversation }) => {
   const handleSendMessage = () => {
     if (!message.trim() || !conversation?._id) return;
 
-    const userId = localStorage.getItem("user_id");
     const to = conversation.participants.find(
       (p) => String(p._id) !== String(userId),
     )?._id;
-
     if (!to) return;
 
     const clientId = crypto.randomUUID();
 
-    // Determine the name of the message being replied to
-    let replyFromName = null;
+    // Helper to get display name of reply
+    let replyToPayload = null;
     if (replyTo) {
-      if (replyTo.from === userId) {
-        replyFromName = "You";
-      } else if (replyTo.fromName) {
-        replyFromName = replyTo.fromName; // Already present
-      } else {
-        // Find the participant's name from the conversation
-        const participant = conversation.participants.find(
-          (p) => String(p._id) === String(replyTo.from),
-        );
-        replyFromName = participant?.name || "Them";
-      }
+      const participant = conversation.participants.find(
+        (p) => String(p._id) === String(replyTo.from),
+      );
+      const displayName =
+        replyTo.from === userId
+          ? "You"
+          : replyTo.fromName ||
+            `${participant?.firstName || ""} ${participant?.lastName || ""}`.trim() ||
+            "Them";
+
+      replyToPayload = {
+        _id: replyTo._id,
+        text: replyTo.text,
+        from: replyTo.from,
+        fromName: displayName,
+      };
     }
 
     const optimisticMessage = {
@@ -188,16 +191,10 @@ const Footer = ({ conversation }) => {
       subtype: replyTo ? "Reply" : "Text",
       createdAt: new Date().toISOString(),
       status: "sent",
-      replyTo: replyTo
-        ? {
-            _id: replyTo._id,
-            text: replyTo.text,
-            from: replyTo.from,
-            fromName: replyFromName,
-          }
-        : null,
+      replyTo: replyToPayload,
     };
 
+    // Optimistically add message
     dispatch(
       addMessageToActiveConversation({
         conversation_id: conversation._id,
@@ -205,6 +202,7 @@ const Footer = ({ conversation }) => {
       }),
     );
 
+    // Emit to server
     socket?.emit("text_message", {
       from: userId,
       to,
@@ -213,15 +211,97 @@ const Footer = ({ conversation }) => {
       type: "Text",
       client_id: clientId,
       createdAt: optimisticMessage.createdAt,
-      replyTo: optimisticMessage.replyTo,
+      replyTo: replyToPayload,
     });
 
-    socket?.emit("typing_stop", {
-      conversation_id: conversation._id,
-    });
+    // Stop typing
+    socket?.emit("typing_stop", { conversation_id: conversation._id });
 
     dispatch(clearReplyTo());
     setMessage("");
+  };
+
+  /* ---------- Reply Highlight ---------- */
+  /* ---------- Reply Highlight ---------- */
+  const renderReplyHighlight = () => {
+    if (!replyTo) return null;
+
+    // 1️⃣ Find the participant in the conversation
+    const participant = conversation?.participants?.find(
+      (p) => String(p._id) === String(replyTo.from),
+    );
+
+    // 2️⃣ Determine display name
+    const displayName =
+      replyTo.from === userId
+        ? "You"
+        : replyTo.fromName ||
+          (participant
+            ? `${participant.firstName || ""} ${participant.lastName || ""}`.trim()
+            : "Them");
+
+    return (
+      <Box
+        mb={1}
+        px={2}
+        py={1}
+        sx={{
+          borderLeft: `4px solid ${theme.palette.primary.main}`,
+          backgroundColor: theme.palette.action.hover,
+          borderRadius: 1,
+        }}
+      >
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+        >
+          <Stack spacing={0.3} sx={{ maxWidth: "90%" }}>
+            {/* Label */}
+            <Typography variant="caption" color="text.secondary">
+              Replying to
+            </Typography>
+
+            {/* Sender Name */}
+            <Typography
+              variant="caption"
+              fontWeight={600}
+              color="text.secondary"
+            >
+              {displayName}
+            </Typography>
+
+            {/* Quoted text */}
+            <Typography
+              variant="body2"
+              sx={{ mt: 0.2 }}
+              color="text.secondary"
+              noWrap
+            >
+              {replyTo.text}
+            </Typography>
+
+            {/* Timestamp */}
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", textAlign: "right", mt: 0.2 }}
+            >
+              {replyTo.createdAt
+                ? new Date(replyTo.createdAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : ""}
+            </Typography>
+          </Stack>
+
+          <IconButton size="small" onClick={() => dispatch(clearReplyTo())}>
+            <X size={14} />
+          </IconButton>
+        </Stack>
+      </Box>
+    );
   };
 
   return (
@@ -236,88 +316,12 @@ const Footer = ({ conversation }) => {
         boxShadow: "0px -1px 2px rgba(0, 0, 0, 0.1)",
       }}
     >
-      {/* Reply Preview */}
-      {replyTo && (
-        <Box
-          mb={1}
-          px={2}
-          py={1}
-          sx={{
-            borderLeft: `4px solid ${theme.palette.primary.main}`,
-            backgroundColor: theme.palette.action.hover,
-            borderRadius: 1,
-          }}
-        >
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Stack spacing={0.3} sx={{ maxWidth: "90%" }}>
-              {/* Label */}
-              <Typography variant="caption" color="text.secondary">
-                Replying to
-              </Typography>
+      {renderReplyHighlight()}
 
-              {/* Sender's Name */}
-              <Typography
-                variant="caption"
-                fontWeight={600}
-                color="text.secondary"
-              >
-                {replyTo.from === userId
-                  ? "You"
-                  : replyTo.fromName ||
-                    conversation.participants.find(
-                      (p) => String(p._id) === String(replyTo.from),
-                    )?.name ||
-                    "Them"}
-              </Typography>
-
-              {/* Replied Text */}
-              <Typography
-                variant="body2"
-                sx={{ display: "block", mt: 0.2 }}
-                color="text.secondary"
-                noWrap
-              >
-                {replyTo.text}
-              </Typography>
-
-              {/* Timestamp */}
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: "block", textAlign: "right", mt: 0.2 }}
-              >
-                {replyTo.createdAt
-                  ? new Date(replyTo.createdAt).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : ""}
-              </Typography>
-            </Stack>
-
-            <IconButton size="small" onClick={() => dispatch(clearReplyTo())}>
-              <X size={14} />
-            </IconButton>
-          </Stack>
-        </Box>
-      )}
-
-      {/* Input */}
       <Stack direction="row" alignItems="center" spacing={2}>
         <Stack sx={{ width: "100%" }}>
           {openPicker && (
-            <Box
-              sx={{
-                position: "fixed",
-                bottom: 90,
-                right: 120,
-                zIndex: 10,
-              }}
-            >
+            <Box sx={{ position: "fixed", bottom: 90, right: 120, zIndex: 10 }}>
               <Picker
                 theme={theme.palette.mode}
                 data={data}

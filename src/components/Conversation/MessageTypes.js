@@ -179,7 +179,7 @@ const ReplyMsg = ({ el, menu, conversation }) => {
   const repliedLabel =
     el.replyTo.from === userId
       ? "You"
-      : el.replyTo.fromName || participant?.name || "Them";
+      : el.replyTo.fromName || "Them";
 
   return (
     <Stack
