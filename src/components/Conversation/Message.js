@@ -42,7 +42,7 @@ const Message = ({ message, menu, conversation }) => {
 
     case "Text":
     default:
-      return <TextMsg el={enrichedMessage} menu={menu} />;
+      return <TextMsg el={enrichedMessage} menu={menu} conversation={conversation} />;
   }
 };
 

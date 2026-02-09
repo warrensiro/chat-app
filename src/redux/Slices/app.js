@@ -194,14 +194,31 @@ const slice = createSlice({
       }
     },
 
+    updateMessageReactions(state, action) {
+      const { conversation_id, message_id, reactions } = action.payload;
+      const update = (messages) => {
+        const msg = messages.find(
+          (m) => m._id === message_id || m.client_id === message_id,
+        );
+        if (msg) msg.reactions = reactions;
+      };
+
+      if (state.activeConversation?._id === conversation_id) {
+        update(state.activeConversation.messages);
+      }
+    },
+
     setReplyTo(state, action) {
       const message = action.payload;
       const userId = localStorage.getItem("user_id");
 
       state.replyTo = {
         ...message,
-        fromName:
-          message.from === userId ? "You" : message.fromName || message.from,
+        fromName: message.fromName
+          ? message.fromName
+          : message.from === userId
+            ? "You"
+            : "Them",
       };
     },
 
@@ -296,6 +313,7 @@ export const {
   setTyping,
   clearTyping,
   updateMessageStatus,
+  updateMessageReactions,
   resetAppState,
   setReplyTo,
   clearReplyTo,

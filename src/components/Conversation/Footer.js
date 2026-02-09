@@ -51,10 +51,8 @@ const Actions = [
   { color: "#013f7f", icon: <User size={24} />, y: 382, title: "Contact" },
 ];
 
-/* ------------------------------ */
-/* Chat Input Component */
-/* ------------------------------ */
 const ChatInput = ({
+  inputRef,
   message,
   setMessage,
   setOpenPicker,
@@ -65,6 +63,7 @@ const ChatInput = ({
 
   return (
     <StyledInput
+      inputRef={inputRef}
       fullWidth
       placeholder="Write a message..."
       variant="filled"
@@ -123,9 +122,6 @@ const ChatInput = ({
   );
 };
 
-/* ------------------------------ */
-/* Footer Component */
-/* ------------------------------ */
 const Footer = ({ conversation }) => {
   const dispatch = useDispatch();
   const theme = useTheme();
@@ -133,10 +129,20 @@ const Footer = ({ conversation }) => {
 
   const { replyTo } = useSelector((state) => state.app);
 
+  // 1. Create a ref for the input
+  const inputRef = useRef(null);
+
   const [message, setMessage] = useState("");
   const [openPicker, setOpenPicker] = useState(false);
   const typingTimeout = useRef(null);
   const userId = localStorage.getItem("user_id");
+
+  // Add this Effect: Whenever replyTo changes (and is not null), focus the input
+  React.useEffect(() => {
+    if (replyTo && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [replyTo]);
 
   /* ---------- Typing Indicator ---------- */
   const handleTyping = () => {
@@ -221,8 +227,6 @@ const Footer = ({ conversation }) => {
     setMessage("");
   };
 
-  /* ---------- Reply Highlight ---------- */
-  /* ---------- Reply Highlight ---------- */
   const renderReplyHighlight = () => {
     if (!replyTo) return null;
 
@@ -268,7 +272,7 @@ const Footer = ({ conversation }) => {
               fontWeight={600}
               color="text.secondary"
             >
-              {displayName}
+              {replyTo.fromName}
             </Typography>
 
             {/* Quoted text */}
@@ -331,6 +335,7 @@ const Footer = ({ conversation }) => {
           )}
 
           <ChatInput
+            inputRef={inputRef}
             message={message}
             setMessage={setMessage}
             setOpenPicker={setOpenPicker}

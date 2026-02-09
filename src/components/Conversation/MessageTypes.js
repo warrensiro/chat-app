@@ -9,7 +9,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   DotsThreeVertical,
   DownloadSimple,
@@ -20,6 +20,10 @@ import {
 import { Message_options } from "../../data";
 import { useDispatch } from "react-redux";
 import { setReplyTo } from "../../redux/Slices/app";
+import data from "@emoji-mart/data";
+import Picker from "@emoji-mart/react";
+import { getSocket } from "../../socket";
+import ClickAwayListener from "@mui/material/ClickAwayListener";
 
 const getAlignment = (incoming) => (incoming ? "flex-start" : "flex-end");
 const getBgColor = (incoming, theme) =>
@@ -45,7 +49,7 @@ const StatusIcon = ({ status, theme }) => {
 };
 
 /* Text Message */
-const TextMsg = ({ el, menu }) => {
+const TextMsg = ({ el, menu, conversation }) => {
   const theme = useTheme();
   const incoming = !el.isMine;
 
@@ -74,13 +78,13 @@ const TextMsg = ({ el, menu }) => {
           {el.isMine && <StatusIcon status={el.status} theme={theme} />}
         </Stack>
       </Box>
-      {menu && <MessageOptions message={el} />}
+      {menu && <MessageOptions message={el} conversation={conversation} />}
     </Stack>
   );
 };
 
 /* Media Message */
-const MediaMsg = ({ el, menu }) => {
+const MediaMsg = ({ el, menu, conversation }) => {
   const theme = useTheme();
   const incoming = !el.isMine;
 
@@ -114,13 +118,13 @@ const MediaMsg = ({ el, menu }) => {
           </Typography>
         </Stack>
       </Box>
-      {menu && <MessageOptions message={el} />}
+      {menu && <MessageOptions message={el} conversation={conversation} />}
     </Stack>
   );
 };
 
 /* Document Message */
-const DocMsg = ({ el, menu }) => {
+const DocMsg = ({ el, menu, conversation }) => {
   const theme = useTheme();
   const incoming = !el.isMine;
 
@@ -163,23 +167,14 @@ const DocMsg = ({ el, menu }) => {
           </Typography>
         </Stack>
       </Box>
-      {menu && <MessageOptions message={el} />}
+      {menu && <MessageOptions message={el} conversation={conversation} />}
     </Stack>
   );
 };
 
 const ReplyMsg = ({ el, menu, conversation }) => {
   const theme = useTheme();
-  const userId = localStorage.getItem("user_id");
-  const incoming = String(el.from) !== String(userId);
-
-  const participant = conversation?.participants?.find(
-    (p) => String(p._id) === String(el.replyTo.from),
-  );
-  const repliedLabel =
-    el.replyTo.from === userId
-      ? "You"
-      : el.replyTo.fromName || "Them";
+  const incoming = !el.isMine;
 
   return (
     <Stack
@@ -198,7 +193,7 @@ const ReplyMsg = ({ el, menu, conversation }) => {
         }}
       >
         <Stack spacing={0.8}>
-          {/* 🔹 Quoted message */}
+          {/* Quoted message */}
           {el.replyTo && (
             <Box
               px={1}
@@ -218,8 +213,9 @@ const ReplyMsg = ({ el, menu, conversation }) => {
                 fontWeight={600}
                 color={incoming ? "text.secondary" : "#fff"}
               >
-                {repliedLabel}
+                {el.replyTo.fromName}
               </Typography>
+
               <Typography
                 variant="caption"
                 sx={{ display: "block", mt: 0.2 }}
@@ -231,7 +227,7 @@ const ReplyMsg = ({ el, menu, conversation }) => {
             </Box>
           )}
 
-          {/* 🔹 Actual message */}
+          {/* Message */}
           <Typography
             variant="body2"
             color={incoming ? "text.primary" : "#fff"}
@@ -239,32 +235,21 @@ const ReplyMsg = ({ el, menu, conversation }) => {
             {el.text}
           </Typography>
 
-          {/* 🔹 Timestamp and ticks */}
-          <Stack
-            direction="row"
-            spacing={0.5}
-            justifyContent="flex-end"
-            alignItems="center"
-          >
+          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
             <Typography variant="caption" color="text.secondary">
-              {new Date(el.createdAt).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {formatTime(el.createdAt)}
             </Typography>
             {el.isMine && <StatusIcon status={el.status} theme={theme} />}
           </Stack>
         </Stack>
       </Box>
 
-      {menu && <MessageOptions message={el} />}
+      {menu && <MessageOptions message={el} conversation={conversation} />}
     </Stack>
   );
 };
 
-/* -------------------- */
-/* Link Message */
-const LinkMsg = ({ el, menu }) => {
+const LinkMsg = ({ el, menu, conversation }) => {
   const theme = useTheme();
   const incoming = !el.isMine;
 
@@ -309,7 +294,7 @@ const LinkMsg = ({ el, menu }) => {
           </Typography>
         </Stack>
       </Box>
-      {menu && <MessageOptions message={el} />}
+      {menu && <MessageOptions message={el} conversation={conversation} />}
     </Stack>
   );
 };
@@ -363,42 +348,155 @@ const Timeline = ({ el }) => {
   );
 };
 
-const MessageOptions = ({ message }) => {
+const MessageOptions = ({ message, conversation }) => {
   const dispatch = useDispatch();
-  const [anchorEl, setAnchorEl] = React.useState(null);
-  const open = Boolean(anchorEl);
+  const theme = useTheme();
+  const socket = getSocket();
+  const userId = localStorage.getItem("user_id");
+  const PICKER_HEIGHT = 420;
+  const PICKER_WIDTH = 360;
+  const VIEWPORT_PADDING = 8;
 
-  const handleAction = (title) => {
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [openPicker, setOpenPicker] = useState(false);
+  const [pickerPlacement, setPickerPlacement] = useState("bottom");
+
+  const openMenu = Boolean(anchorEl);
+
+  const resolveSenderName = () => {
+    if (String(message.from) === String(userId)) return "You";
+
+    const sender = conversation?.participants?.find(
+      (p) => String(p._id) === String(message.from),
+    );
+    return sender
+      ? `${sender.firstName} ${sender.lastName || ""}`.trim()
+      : "Them";
+  };
+  const dotsRef = useRef(null);
+
+  const calculatePlacement = () => {
+    if (!dotsRef.current) return "bottom";
+
+    const rect = dotsRef.current.getBoundingClientRect();
+
+    const bottomTop = rect.bottom + 8;
+    const topTop = rect.top - PICKER_HEIGHT - 8;
+
+    const bottomOverflow =
+      bottomTop + PICKER_HEIGHT - window.innerHeight + VIEWPORT_PADDING;
+
+    const topOverflow = VIEWPORT_PADDING - topTop;
+
+    return bottomOverflow > topOverflow ? "top" : "bottom";
+  };
+
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && setOpenPicker(false);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
+    return () => setOpenPicker(false);
+  }, []);
+
+  const handleAction = (action) => {
     setAnchorEl(null);
 
-    if (title === "Reply") {
+    if (action === "reply") {
       dispatch(
         setReplyTo({
-          ...message,
-          fromName:
-            message.from === localStorage.getItem("user_id")
-              ? "You"
-              : message.fromName || message.from,
+          _id: message._id,
+          text: message.text,
+          from: message.from,
+          fromName: resolveSenderName(),
         }),
       );
     }
-    setAnchorEl(null);
 
-    // future actions go here
+    if (action === "react") {
+      const placement = calculatePlacement();
+      setPickerPlacement(placement);
+      setOpenPicker(true);
+    }
   };
 
   return (
     <>
-      <IconButton size="small" onClick={(e) => setAnchorEl(e.currentTarget)}>
+      {/* ⋮ menu button */}
+      <IconButton
+        size="small"
+        ref={dotsRef}
+        onClick={(e) => setAnchorEl(e.currentTarget)}
+      >
         <DotsThreeVertical size={18} />
       </IconButton>
-      <Menu anchorEl={anchorEl} open={open} onClose={() => setAnchorEl(null)}>
+
+      {/* Dots Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={openMenu}
+        onClose={() => setAnchorEl(null)}
+      >
         {Message_options.map((el) => (
-          <MenuItem key={el.title} onClick={() => handleAction(el.title)}>
+          <MenuItem key={el.action} onClick={() => handleAction(el.action)}>
             {el.title}
           </MenuItem>
         ))}
       </Menu>
+
+      {/* Floating Emoji Picker */}
+      {openPicker &&
+        dotsRef.current &&
+        (() => {
+          const rect = dotsRef.current.getBoundingClientRect();
+
+          let top =
+            pickerPlacement === "bottom"
+              ? rect.bottom + 8
+              : rect.top - PICKER_HEIGHT - 8;
+
+          // 🔒 Clamp vertically inside viewport
+          top = Math.max(
+            VIEWPORT_PADDING,
+            Math.min(
+              top,
+              window.innerHeight - PICKER_HEIGHT - VIEWPORT_PADDING,
+            ),
+          );
+
+          let left = rect.left;
+
+          // 🔒 Clamp horizontally
+          left = Math.max(
+            VIEWPORT_PADDING,
+            Math.min(left, window.innerWidth - PICKER_WIDTH - VIEWPORT_PADDING),
+          );
+
+          return (
+            <ClickAwayListener onClickAway={() => setOpenPicker(false)}>
+              <Box
+                sx={{
+                  position: "fixed", // 👈 important
+                  top,
+                  left,
+                  zIndex: 2000,
+                  willChange: "transform",
+                }}
+              >
+                <Picker
+                  data={data}
+                  theme={theme.palette.mode}
+                  onEmojiSelect={(e) => {
+                    console.log("EMOJI SELECTED:", e.native);
+                    setOpenPicker(false);
+                  }}
+                />
+              </Box>
+            </ClickAwayListener>
+          );
+        })()}
     </>
   );
 };

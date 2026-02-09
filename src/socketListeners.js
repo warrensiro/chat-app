@@ -11,6 +11,7 @@ import {
   setTyping,
   clearTyping,
   updateMessageStatus,
+  updateMessageReactions,
 } from "./redux/Slices/app";
 import { store } from "./redux/store";
 
@@ -163,6 +164,18 @@ export const initSocketListeners = (dispatch, userId) => {
         conversation_id,
         status: "read",
         onlyMine: true,
+      }),
+    );
+  });
+
+  socket.on("new_reaction", ({ conversation_id, message_id, reactions }) => {
+    if (!conversation_id || !message_id) return;
+
+    dispatch(
+      updateMessageReactions({
+        conversation_id,
+        message_id,
+        reactions,
       }),
     );
   });
