@@ -12,6 +12,7 @@ import {
   clearTyping,
   updateMessageStatus,
   updateMessageReactions,
+  deleteMessageFromConversation,
 } from "./redux/Slices/app";
 import { store } from "./redux/store";
 
@@ -134,16 +135,6 @@ export const initSocketListeners = (dispatch, userId) => {
     }
   });
 
-  // socket.on("message_sent", ({ conversation_id, message }) => {
-  //   dispatch(
-  //     updateMessageStatus({
-  //       conversation_id,
-  //       status: "sent",
-  //       messageId: message._id,
-  //     }),
-  //   );
-  // });
-
   socket.on("message_delivered", ({ conversation_id, message_id }) => {
     if (!conversation_id || !message_id) return;
 
@@ -178,6 +169,12 @@ export const initSocketListeners = (dispatch, userId) => {
         reactions,
       }),
     );
+  });
+
+  socket.on("message_deleted", ({ conversation_id, message_id }) => {
+    if (!conversation_id || !message_id) return;
+
+    dispatch(deleteMessageFromConversation({ conversation_id, message_id }));
   });
 
   socket.on("typing_start", ({ conversation_id, from }) => {

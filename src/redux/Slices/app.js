@@ -113,13 +113,13 @@ const slice = createSlice({
       state.activeConversation = convo;
     },
 
-    /* ───────── MESSAGES ───────── */
     addMessageToActiveConversation(state, action) {
       const { conversation_id, message, userId } = action.payload;
       if (!conversation_id || !message) return;
 
       const normalizedMessage = {
         ...message,
+        reactions: message.reactions || [],
         isMine: String(message.from) === String(userId),
         replyTo: message.replyTo ? { ...message.replyTo } : null,
       };
@@ -196,15 +196,23 @@ const slice = createSlice({
 
     updateMessageReactions(state, action) {
       const { conversation_id, message_id, reactions } = action.payload;
-      const update = (messages) => {
-        const msg = messages.find(
-          (m) => m._id === message_id || m.client_id === message_id,
+
+      const updateList = (convo) => {
+        if (!convo) return;
+
+        const msg = convo.messages.find(
+          (m) => String(m._id) === String(message_id),
         );
-        if (msg) msg.reactions = reactions;
+
+        if (msg) {
+          msg.reactions = reactions;
+        }
       };
 
+      updateList(state.conversations.find((c) => c._id === conversation_id));
+
       if (state.activeConversation?._id === conversation_id) {
-        update(state.activeConversation.messages);
+        updateList(state.activeConversation);
       }
     },
 
@@ -226,7 +234,24 @@ const slice = createSlice({
       state.replyTo = null;
     },
 
-    /* ───────── UNREAD ───────── */
+    deleteMessageFromConversation(state, action) {
+      const { conversation_id, message_id } = action.payload;
+
+      const updateMessages = (messages = []) =>
+        messages.filter((m) => m._id !== message_id);
+
+      const convo = state.conversations.find((c) => c._id === conversation_id);
+      if (convo) {
+        convo.messages = updateMessages(convo.messages);
+      }
+
+      if (state.activeConversation?._id === conversation_id) {
+        state.activeConversation.messages = updateMessages(
+          state.activeConversation.messages,
+        );
+      }
+    },
+
     incrementUnread(state, action) {
       const convo = state.conversations.find((c) => c._id === action.payload);
       if (convo) {
@@ -314,6 +339,7 @@ export const {
   clearTyping,
   updateMessageStatus,
   updateMessageReactions,
+  deleteMessageFromConversation,
   resetAppState,
   setReplyTo,
   clearReplyTo,

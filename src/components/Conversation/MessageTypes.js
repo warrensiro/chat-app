@@ -24,6 +24,8 @@ import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
 import { getSocket } from "../../socket";
 import ClickAwayListener from "@mui/material/ClickAwayListener";
+import MessageDeleteDialog from "../MessageDelete";
+import Reactions from "./Reactions";
 
 const getAlignment = (incoming) => (incoming ? "flex-start" : "flex-end");
 const getBgColor = (incoming, theme) =>
@@ -47,6 +49,7 @@ const StatusIcon = ({ status, theme }) => {
     );
   return null;
 };
+const userId = localStorage.getItem("user_id");
 
 /* Text Message */
 const TextMsg = ({ el, menu, conversation }) => {
@@ -56,28 +59,53 @@ const TextMsg = ({ el, menu, conversation }) => {
   return (
     <Stack direction="row" justifyContent={getAlignment(incoming)} mb={1}>
       <Box
-        p={1.5}
         sx={{
-          backgroundColor: getBgColor(incoming, theme),
-          borderRadius: 1.5,
           maxWidth: "70%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: incoming ? "flex-start" : "flex-end",
         }}
       >
-        <Typography variant="body2" color={getTextColor(incoming, theme)}>
-          {el.text}
-        </Typography>
-        <Stack
-          direction="row"
-          spacing={0.5}
-          justifyContent="flex-end"
-          alignItems="center"
+        {/* Message bubble */}
+        <Box
+          p={1.5}
+          sx={{
+            backgroundColor: getBgColor(incoming, theme),
+            borderRadius: 1.5,
+            width: "100%",
+          }}
         >
-          <Typography variant="caption" color="text.secondary">
-            {formatTime(el.createdAt)}
+          <Typography variant="body2" color={getTextColor(incoming, theme)}>
+            {el.text}
           </Typography>
-          {el.isMine && <StatusIcon status={el.status} theme={theme} />}
-        </Stack>
+
+          <Stack
+            direction="row"
+            spacing={0.5}
+            justifyContent="flex-end"
+            alignItems="center"
+          >
+            <Typography variant="caption" color="text.secondary">
+              {formatTime(el.createdAt)}
+            </Typography>
+            {el.isMine && <StatusIcon status={el.status} theme={theme} />}
+          </Stack>
+        </Box>
+
+        {/* Reactions BELOW bubble */}
+        {el.reactions?.length > 0 && (
+          <Box
+            mt={0.3}
+            px={0.5}
+            sx={{
+              alignSelf: incoming ? "flex-start" : "flex-end",
+            }}
+          >
+            <Reactions reactions={el.reactions} />
+          </Box>
+        )}
       </Box>
+
       {menu && <MessageOptions message={el} conversation={conversation} />}
     </Stack>
   );
@@ -91,32 +119,54 @@ const MediaMsg = ({ el, menu, conversation }) => {
   return (
     <Stack direction="row" justifyContent={getAlignment(incoming)} mb={1}>
       <Box
-        p={1.5}
         sx={{
-          backgroundColor: getBgColor(incoming, theme),
-          borderRadius: 1.5,
           maxWidth: "70%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: incoming ? "flex-start" : "flex-end",
         }}
       >
-        <Stack spacing={1}>
-          {el.img && (
-            <img
-              src={el.img}
-              alt={el.text}
-              style={{ maxHeight: 210, borderRadius: 10 }}
-            />
-          )}
-          <Typography variant="body2" color={getTextColor(incoming, theme)}>
-            {el.text}
-          </Typography>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: "block", textAlign: "right" }}
+        <Box
+          p={1.5}
+          sx={{
+            backgroundColor: getBgColor(incoming, theme),
+            borderRadius: 1.5,
+            width: "100%",
+          }}
+        >
+          <Stack spacing={1}>
+            {el.img && (
+              <img
+                src={el.img}
+                alt={el.text}
+                style={{ maxHeight: 210, borderRadius: 10 }}
+              />
+            )}
+            <Typography variant="body2" color={getTextColor(incoming, theme)}>
+              {el.text}
+            </Typography>
+
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", textAlign: "right" }}
+            >
+              {formatTime(el.createdAt)}
+            </Typography>
+          </Stack>
+        </Box>
+        {/* Reactions display */}
+        {el.reactions?.length > 0 && (
+          <Box
+            mt={0.3}
+            px={0.5}
+            sx={{
+              alignSelf: incoming ? "flex-start" : "flex-end",
+            }}
           >
-            {formatTime(el.createdAt)}
-          </Typography>
-        </Stack>
+            <Reactions reactions={el.reactions} />
+          </Box>
+        )}
       </Box>
       {menu && <MessageOptions message={el} conversation={conversation} />}
     </Stack>
@@ -131,41 +181,63 @@ const DocMsg = ({ el, menu, conversation }) => {
   return (
     <Stack direction="row" justifyContent={getAlignment(incoming)} mb={1}>
       <Box
-        p={1.5}
         sx={{
-          backgroundColor: getBgColor(incoming, theme),
-          borderRadius: 1.5,
           maxWidth: "70%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: incoming ? "flex-start" : "flex-end",
         }}
       >
-        <Stack spacing={2}>
-          <Stack
-            p={2}
-            direction="row"
-            spacing={2}
-            alignItems="center"
+        <Box
+          p={1.5}
+          sx={{
+            backgroundColor: getBgColor(incoming, theme),
+            borderRadius: 1.5,
+            width: "100%",
+          }}
+        >
+          <Stack spacing={2}>
+            <Stack
+              p={2}
+              direction="row"
+              spacing={2}
+              alignItems="center"
+              sx={{
+                backgroundColor: theme.palette.background.paper,
+                borderRadius: 1,
+              }}
+            >
+              <Image size={40} />
+              <Typography variant="caption">Document</Typography>
+              <IconButton>
+                <DownloadSimple />
+              </IconButton>
+            </Stack>
+            <Typography variant="body2" color={getTextColor(incoming, theme)}>
+              {el.text}
+            </Typography>
+
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", textAlign: "right" }}
+            >
+              {formatTime(el.createdAt)}
+            </Typography>
+          </Stack>
+        </Box>
+        {/* Reactions BELOW bubble */}
+        {el.reactions?.length > 0 && (
+          <Box
+            mt={0.3}
+            px={0.5}
             sx={{
-              backgroundColor: theme.palette.background.paper,
-              borderRadius: 1,
+              alignSelf: incoming ? "flex-start" : "flex-end",
             }}
           >
-            <Image size={40} />
-            <Typography variant="caption">Document</Typography>
-            <IconButton>
-              <DownloadSimple />
-            </IconButton>
-          </Stack>
-          <Typography variant="body2" color={getTextColor(incoming, theme)}>
-            {el.text}
-          </Typography>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: "block", textAlign: "right" }}
-          >
-            {formatTime(el.createdAt)}
-          </Typography>
-        </Stack>
+            <Reactions reactions={el.reactions} />
+          </Box>
+        )}
       </Box>
       {menu && <MessageOptions message={el} conversation={conversation} />}
     </Stack>
@@ -183,65 +255,86 @@ const ReplyMsg = ({ el, menu, conversation }) => {
       mb={1}
     >
       <Box
-        p={1.5}
         sx={{
-          backgroundColor: incoming
-            ? theme.palette.background.default
-            : theme.palette.primary.main,
-          borderRadius: 1.5,
           maxWidth: "70%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: incoming ? "flex-start" : "flex-end",
         }}
       >
-        <Stack spacing={0.8}>
-          {/* Quoted message */}
-          {el.replyTo && (
-            <Box
-              px={1}
-              py={0.8}
-              sx={{
-                borderLeft: `3px solid ${
-                  incoming ? theme.palette.primary.main : "#fff"
-                }`,
-                backgroundColor: incoming
-                  ? theme.palette.action.hover
-                  : "rgba(255,255,255,0.15)",
-                borderRadius: 0.5,
-              }}
+        <Box
+          p={1.5}
+          sx={{
+            backgroundColor: incoming
+              ? theme.palette.background.default
+              : theme.palette.primary.main,
+            borderRadius: 1.5,
+            width: "100%",
+          }}
+        >
+          <Stack spacing={0.8}>
+            {/* Quoted message */}
+            {el.replyTo && (
+              <Box
+                px={1}
+                py={0.8}
+                sx={{
+                  borderLeft: `3px solid ${
+                    incoming ? theme.palette.primary.main : "#fff"
+                  }`,
+                  backgroundColor: incoming
+                    ? theme.palette.action.hover
+                    : "rgba(255,255,255,0.15)",
+                  borderRadius: 0.5,
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  fontWeight={600}
+                  color={incoming ? "text.secondary" : "#fff"}
+                >
+                  {el.replyTo.fromName}
+                </Typography>
+
+                <Typography
+                  variant="caption"
+                  sx={{ display: "block", mt: 0.2 }}
+                  color={incoming ? "text.secondary" : "#fff"}
+                  noWrap
+                >
+                  {el.replyTo.text}
+                </Typography>
+              </Box>
+            )}
+
+            {/* Message */}
+            <Typography
+              variant="body2"
+              color={incoming ? "text.primary" : "#fff"}
             >
-              <Typography
-                variant="caption"
-                fontWeight={600}
-                color={incoming ? "text.secondary" : "#fff"}
-              >
-                {el.replyTo.fromName}
-              </Typography>
-
-              <Typography
-                variant="caption"
-                sx={{ display: "block", mt: 0.2 }}
-                color={incoming ? "text.secondary" : "#fff"}
-                noWrap
-              >
-                {el.replyTo.text}
-              </Typography>
-            </Box>
-          )}
-
-          {/* Message */}
-          <Typography
-            variant="body2"
-            color={incoming ? "text.primary" : "#fff"}
-          >
-            {el.text}
-          </Typography>
-
-          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-            <Typography variant="caption" color="text.secondary">
-              {formatTime(el.createdAt)}
+              {el.text}
             </Typography>
-            {el.isMine && <StatusIcon status={el.status} theme={theme} />}
+
+            <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+              <Typography variant="caption" color="text.secondary">
+                {formatTime(el.createdAt)}
+              </Typography>
+              {el.isMine && <StatusIcon status={el.status} theme={theme} />}
+            </Stack>
           </Stack>
-        </Stack>
+        </Box>
+        {/* Reactions BELOW bubble */}
+        {el.reactions?.length > 0 && (
+          <Box
+            mt={0.3}
+            px={0.5}
+            sx={{
+              alignSelf: incoming ? "flex-start" : "flex-end",
+            }}
+          >
+            <Reactions reactions={el.reactions} />
+          </Box>
+        )}
       </Box>
 
       {menu && <MessageOptions message={el} conversation={conversation} />}
@@ -256,43 +349,65 @@ const LinkMsg = ({ el, menu, conversation }) => {
   return (
     <Stack direction="row" justifyContent={getAlignment(incoming)} mb={1}>
       <Box
-        p={1.5}
         sx={{
-          backgroundColor: getBgColor(incoming, theme),
-          borderRadius: 1.5,
           maxWidth: "70%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: incoming ? "flex-start" : "flex-end",
         }}
       >
-        <Stack spacing={1}>
-          {el.preview && (
-            <img
-              src={el.preview}
-              alt={el.text}
-              style={{ maxHeight: 200, borderRadius: 10 }}
-            />
-          )}
-          {el.url && (
-            <Typography
-              component={Link}
-              href={el.url}
-              target="_blank"
-              rel="noopener"
-              sx={{ color: theme.palette.primary.main }}
-            >
-              {el.url}
+        <Box
+          p={1.5}
+          sx={{
+            backgroundColor: getBgColor(incoming, theme),
+            borderRadius: 1.5,
+            width: "100%",
+          }}
+        >
+          <Stack spacing={1}>
+            {el.preview && (
+              <img
+                src={el.preview}
+                alt={el.text}
+                style={{ maxHeight: 200, borderRadius: 10 }}
+              />
+            )}
+            {el.url && (
+              <Typography
+                component={Link}
+                href={el.url}
+                target="_blank"
+                rel="noopener"
+                sx={{ color: theme.palette.primary.main }}
+              >
+                {el.url}
+              </Typography>
+            )}
+            <Typography variant="body2" color={getTextColor(incoming, theme)}>
+              {el.text}
             </Typography>
-          )}
-          <Typography variant="body2" color={getTextColor(incoming, theme)}>
-            {el.text}
-          </Typography>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: "block", textAlign: "right" }}
+
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", textAlign: "right" }}
+            >
+              {formatTime(el.createdAt)}
+            </Typography>
+          </Stack>
+        </Box>
+        {/* Reactions BELOW bubble */}
+        {el.reactions?.length > 0 && (
+          <Box
+            mt={0.3}
+            px={0.5}
+            sx={{
+              alignSelf: incoming ? "flex-start" : "flex-end",
+            }}
           >
-            {formatTime(el.createdAt)}
-          </Typography>
-        </Stack>
+            <Reactions reactions={el.reactions} />
+          </Box>
+        )}
       </Box>
       {menu && <MessageOptions message={el} conversation={conversation} />}
     </Stack>
@@ -360,6 +475,7 @@ const MessageOptions = ({ message, conversation }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [openPicker, setOpenPicker] = useState(false);
   const [pickerPlacement, setPickerPlacement] = useState("bottom");
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false); 
 
   const openMenu = Boolean(anchorEl);
 
@@ -420,6 +536,22 @@ const MessageOptions = ({ message, conversation }) => {
       setPickerPlacement(placement);
       setOpenPicker(true);
     }
+
+    if (action === "delete") {
+      setOpenDeleteDialog(true);
+      
+      
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    const socket = getSocket();
+    socket.emit("delete_message", {
+      conversation_id: conversation._id,
+      message_id: message._id,
+      from: userId,
+    });
+    setOpenDeleteDialog(false);
   };
 
   return (
@@ -457,7 +589,7 @@ const MessageOptions = ({ message, conversation }) => {
               ? rect.bottom + 8
               : rect.top - PICKER_HEIGHT - 8;
 
-          // 🔒 Clamp vertically inside viewport
+          // Clamp vertically inside viewport
           top = Math.max(
             VIEWPORT_PADDING,
             Math.min(
@@ -468,7 +600,7 @@ const MessageOptions = ({ message, conversation }) => {
 
           let left = rect.left;
 
-          // 🔒 Clamp horizontally
+          // Clamp horizontally
           left = Math.max(
             VIEWPORT_PADDING,
             Math.min(left, window.innerWidth - PICKER_WIDTH - VIEWPORT_PADDING),
@@ -488,8 +620,20 @@ const MessageOptions = ({ message, conversation }) => {
                 <Picker
                   data={data}
                   theme={theme.palette.mode}
-                  onEmojiSelect={(e) => {
-                    console.log("EMOJI SELECTED:", e.native);
+                  onEmojiSelect={(emoji) => {
+                    if (!message?._id || !conversation?._id) {
+                      console.log("🧪 Reacting", {
+                        messageId: message?._id,
+                        conversationId: conversation?._id,
+                      });
+                      return;
+                    }
+                    socket.emit("message_reaction", {
+                      conversation_id: conversation._id,
+                      message_id: message._id,
+                      emoji: emoji.native,
+                      from: userId,
+                    });
                     setOpenPicker(false);
                   }}
                 />
@@ -497,6 +641,12 @@ const MessageOptions = ({ message, conversation }) => {
             </ClickAwayListener>
           );
         })()}
+      {/* Delete Confirmation Dialog */}
+      <MessageDeleteDialog
+        open={openDeleteDialog}
+        handleClose={() => setOpenDeleteDialog(false)}
+        onConfirm={handleConfirmDelete}
+      />
     </>
   );
 };

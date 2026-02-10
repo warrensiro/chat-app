@@ -111,6 +111,7 @@ const Conversation = () => {
                         type: "divider",
                         text: formatDayLabel(msg.createdAt),
                       }}
+                      conversation={activeConversation}
                     />
                   )}
 
@@ -120,6 +121,7 @@ const Conversation = () => {
                       incoming: String(msg.from) !== String(userId),
                     }}
                     menu
+                    conversation={activeConversation}
                   />
                 </React.Fragment>
               );
