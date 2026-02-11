@@ -1,10 +1,12 @@
 import { styled } from "@mui/material/styles";
 import { Badge } from "@mui/material";
 
-const StyledBadge = styled(Badge)(({ theme }) => ({
+const StyledBadge = styled(Badge, {
+  shouldForwardProp: (prop) => prop !== "online", // allow 'online' prop
+})(({ theme, online }) => ({
   "& .MuiBadge-badge": {
-    backgroundColor: "#44b700",
-    color: "#44b700",
+    backgroundColor: online ? "#44b700" : "#9E9E9E",
+    color: online ? "#44b700" : "#9E9E9E",
     boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
     "&::after": {
       position: "absolute",
@@ -13,7 +15,7 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
       width: "100%",
       height: "100%",
       borderRadius: "50%",
-      animation: "ripple 1.2s infinite ease-in-out",
+      animation: online ? "ripple 1.2s infinite ease-in-out" : "none",
       border: "1px solid currentColor",
       content: '""',
     },

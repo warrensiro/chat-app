@@ -1,5 +1,5 @@
 import { Box, Stack, Typography } from "@mui/material";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import Header from "./Header";
 import Footer from "./Footer";
@@ -28,27 +28,18 @@ const formatDayLabel = (date) => {
 
 const Conversation = () => {
   const { activeConversation, typing } = useSelector((state) => state.app);
-
   const messagesEndRef = useRef(null);
   const userId = localStorage.getItem("user_id");
 
+  const [searchText, setSearchText] = useState("");
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [
-    activeConversation?._id,
-    activeConversation?.messages?.length,
-    typing?.[activeConversation?._id],
-  ]);
+  }, [activeConversation?._id, activeConversation?.messages?.length, typing?.[activeConversation?._id]]);
 
   if (!activeConversation) {
     return (
-      <Stack
-        flex={1}
-        minHeight={0}
-        alignItems="center"
-        justifyContent="center"
-        sx={{ backgroundColor: "#f0f0f0" }}
-      >
+      <Stack flex={1} minHeight={0} alignItems="center" justifyContent="center" sx={{ backgroundColor: "#f0f0f0" }}>
         <Typography variant="h6" color="text.secondary">
           Select a chat to start messaging
         </Typography>
@@ -56,97 +47,57 @@ const Conversation = () => {
     );
   }
 
-  const messages = Array.isArray(activeConversation.messages)
-    ? activeConversation.messages
-    : [];
+  const allMessages = Array.isArray(activeConversation.messages) ? activeConversation.messages : [];
 
-  const isTyping =
-    typing?.[activeConversation._id] &&
-    String(typing[activeConversation._id]) !== String(userId);
+  // 🔹 Filtered messages based on search
+  const messages = searchText
+    ? allMessages.filter((msg) => msg.text?.toLowerCase().includes(searchText.toLowerCase()))
+    : allMessages;
+
+  const isTyping = typing?.[activeConversation._id] && String(typing[activeConversation._id]) !== String(userId);
 
   return (
-    <Stack
-      direction="column"
-      flex={1}
-      minHeight={0} // critical for scroll containment
-    >
-      {/* Header (fixed) */}
-      <Header conversation={activeConversation} />
+    <Stack direction="column" flex={1} minHeight={0}>
+      {/* Header */}
+      <Header conversation={activeConversation} onSearch={setSearchText} />
 
-      {/* Messages (scrollable only area) */}
-      <Box
-        flex={1}
-        minHeight={0}
-        px={3}
-        py={2}
-        sx={{
-          overflowY: "auto",
-          overflowX: "hidden",
-        }}
-      >
+      {/* Messages */}
+      <Box flex={1} minHeight={0} px={3} py={2} sx={{ overflowY: "auto", overflowX: "hidden" }}>
         {messages.length === 0 && !isTyping ? (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            textAlign="center"
-            mt={2}
-          >
-            No messages yet. Say hi!
+          <Typography variant="body2" color="text.secondary" textAlign="center" mt={2}>
+            No messages found.
           </Typography>
         ) : (
           <>
             {messages.map((msg, index) => {
               const prevMsg = messages[index - 1];
-
               const showDivider =
-                !prevMsg ||
-                new Date(prevMsg.createdAt).toDateString() !==
-                  new Date(msg.createdAt).toDateString();
+                !prevMsg || new Date(prevMsg.createdAt).toDateString() !== new Date(msg.createdAt).toDateString();
 
               return (
                 <React.Fragment key={msg._id || msg.client_id}>
-                  {showDivider && (
-                    <Message
-                      message={{
-                        type: "divider",
-                        text: formatDayLabel(msg.createdAt),
-                      }}
-                      conversation={activeConversation}
-                    />
-                  )}
-
-                  <Message
-                    message={{
-                      ...msg,
-                      incoming: String(msg.from) !== String(userId),
-                    }}
-                    menu
-                    conversation={activeConversation}
-                  />
+                  {showDivider && <Message message={{ type: "divider", text: formatDayLabel(msg.createdAt) }} conversation={activeConversation} />}
+                  <Message message={{ ...msg, incoming: String(msg.from) !== String(userId) }} menu conversation={activeConversation} />
                 </React.Fragment>
               );
             })}
 
             {/* Typing indicator */}
             {isTyping && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ ml: 1, mt: 1 }}
-              >
+              <Typography variant="caption" color="text.secondary" sx={{ ml: 1, mt: 1 }}>
                 Typing…
               </Typography>
             )}
           </>
         )}
-
         <div ref={messagesEndRef} />
       </Box>
 
-      {/* Footer (fixed) */}
+      {/* Footer */}
       <Footer conversation={activeConversation} />
     </Stack>
   );
 };
+
 
 export default Conversation;

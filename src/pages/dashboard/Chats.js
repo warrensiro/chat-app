@@ -59,14 +59,28 @@ const Chats = () => {
   }, [userId, dispatch]);
 
   const togglePin = (conversationId) => {
-  setPinnedChats((prev) =>
-    prev.includes(conversationId)
-      ? prev.filter((id) => id !== conversationId)
-      : [conversationId, ...prev]
-  );
-};
+    setPinnedChats((prev) =>
+      prev.includes(conversationId)
+        ? prev.filter((id) => id !== conversationId)
+        : [conversationId, ...prev],
+    );
+  };
+
+  const [search, setSearch] = useState("");
 
   const hasNoChats = !conversations || conversations.length === 0;
+  const filteredConversations = conversations.filter((conversation) => {
+    const otherUser = conversation.participants?.find(
+      (p) => String(p._id) !== String(userId),
+    );
+
+    if (!otherUser) return false;
+
+    const fullName =
+      `${otherUser.firstName} ${otherUser.lastName}`.toLowerCase();
+
+    return fullName.includes(search.toLowerCase());
+  });
 
   return (
     <>
@@ -113,7 +127,11 @@ const Chats = () => {
             <SearchIconWrapper>
               <MagnifyingGlass color="#789CE5" />
             </SearchIconWrapper>
-            <StyledInputBase placeholder="Search…" />
+            <StyledInputBase
+              placeholder="Search…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </Search>
 
           {/* Archive */}
@@ -142,39 +160,41 @@ const Chats = () => {
                   </Typography>
                 )}
 
-                {pinnedChats.map((conversation) => {
-                  const otherUser = conversation.participants?.find(
-                    (p) => String(p._id) !== String(userId),
-                  );
-                  if (!otherUser) return null;
+                {filteredConversations
+                  .filter((c) => pinnedChats.includes(c._id))
+                  .map((conversation) => {
+                    const otherUser = conversation.participants?.find(
+                      (p) => String(p._id) !== String(userId),
+                    );
+                    if (!otherUser) return null;
 
-                  const lastMessage = conversation.messages?.at(-1);
+                    const lastMessage = conversation.messages?.at(-1);
 
-                  const lastMsg = lastMessage?.text || "No messages yet";
-                  const lastTime = lastMessage?.createdAt;
+                    const lastMsg = lastMessage?.text || "No messages yet";
+                    const lastTime = lastMessage?.createdAt;
 
-                  return (
-                    <ChatElement
-                      key={conversation._id}
-                      name={`${otherUser.firstName} ${otherUser.lastName}`}
-                      msg={lastMsg}
-                      time={lastTime}
-                      online={otherUser.status === "Online"}
-                      selected={activeConversation?._id === conversation._id}
-                      onClick={() =>
-                        dispatch(
-                          setActiveConversation({
-                            conversationId: conversation._id,
-                            userId,
-                          }),
-                        )
-                      }
-                      togglePin={() => togglePin(conversation)}
-                      unread={conversation.unread}
-                      pinned={true}
-                    />
-                  );
-                })}
+                    return (
+                      <ChatElement
+                        key={conversation._id}
+                        name={`${otherUser.firstName} ${otherUser.lastName}`}
+                        msg={lastMsg}
+                        time={lastTime}
+                        online={otherUser.status === "Online"}
+                        selected={activeConversation?._id === conversation._id}
+                        onClick={() =>
+                          dispatch(
+                            setActiveConversation({
+                              conversationId: conversation._id,
+                              userId,
+                            }),
+                          )
+                        }
+                        togglePin={() => togglePin(conversation)}
+                        unread={conversation.unread}
+                        pinned={true}
+                      />
+                    );
+                  })}
               </Stack>
 
               <Divider sx={{ my: 2 }} />
@@ -188,7 +208,7 @@ const Chats = () => {
                     No conversations yet
                   </Typography>
                 ) : (
-                  conversations
+                  filteredConversations
                     .filter((c) => !pinnedChats.includes(c._id))
                     .map((conversation) => {
                       const otherUser = conversation.participants?.find(

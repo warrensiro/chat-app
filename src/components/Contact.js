@@ -25,7 +25,7 @@ import {
   X,
 } from "phosphor-react";
 import React, { useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { toggleSidebar, updateSidebarType } from "../redux/Slices/app";
 import { faker } from "@faker-js/faker";
 import AntSwitch from "./AntSwitch";
@@ -87,15 +87,27 @@ const DeleteDialog = ({ open, handleClose }) => {
 const Contact = () => {
   const theme = useTheme();
   const dispatch = useDispatch();
+
   const [openBlock, setOpenBlock] = useState(false);
   const [openDelete, setOpenDelete] = useState(false);
 
-  const handleCloseBlock = () => {
-    setOpenBlock(false);
-  };
-  const handleCloseDelete = () => {
-    setOpenDelete(false);
-  };
+  const activeConversation = useSelector(
+    (state) => state.app.activeConversation,
+  );
+  const userId = useSelector((state) => state.auth.userId);
+
+  if (!activeConversation) return null;
+
+  // Get the other user in the conversation
+  const user = activeConversation.participants.find(
+    (p) => String(p._id) !== String(userId),
+  );
+
+  if (!user) return null;
+
+  const handleCloseBlock = () => setOpenBlock(false);
+  const handleCloseDelete = () => setOpenDelete(false);
+
   return (
     <Box sx={{ width: 320, height: "100vh" }}>
       <Stack sx={{ height: "100%" }}>
@@ -106,8 +118,8 @@ const Contact = () => {
             width: "100%",
             backgroundColor:
               theme.palette.mode === "light"
-                ? "#FAF5FF"
-                : theme.palette.background,
+                ? "#F5F5F5"
+                : theme.palette.background.default,
           }}
         >
           <Stack
@@ -139,16 +151,16 @@ const Contact = () => {
         >
           <Stack alignItems={"center"} direction="row" spacing={2}>
             <Avatar
-              src={faker.internet.avatar()}
-              alt={faker.name.firstName()}
+              src={user.img}
+              alt={`${user.firstName}`}
               sx={{ height: 64, width: 64 }}
             />
             <Stack spacing={0.5}>
               <Typography variant="vertical" fontWeight={600}>
-                {faker.name.fullName()}
+                {user.firstName} {user.lastName}
               </Typography>
               <Typography variant="vertical" fontWeight={500}>
-                {"+25 479 579 1141"}
+                {user.phone || "N/A"}
               </Typography>
             </Stack>
           </Stack>
@@ -173,7 +185,9 @@ const Contact = () => {
           <Divider />
           <Stack spacing={0.5}>
             <Typography variant="article">About</Typography>
-            <Typography variant="body2">Hi there, I am using ...</Typography>
+            <Typography variant="body2">
+              {user.about || "Hey there I am using Siro..."}
+            </Typography>
           </Stack>
           <Divider />
           <Stack
@@ -236,7 +250,9 @@ const Contact = () => {
             <Avatar src={faker.internet.avatar()} alt={faker.name.fullName()} />
             <Stack spacing={0.5}>
               <Typography variant="subtitle2">Investment Group</Typography>
-              <Typography variant="caption">Owl, Hen, Rabbit, You...</Typography>
+              <Typography variant="caption">
+                Owl, Hen, Rabbit, You...
+              </Typography>
             </Stack>
           </Stack>
           <Stack direction="row" alignItems={"center"} spacing={2}>
