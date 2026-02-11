@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../../utils/axios";
 import { resetAppState, showSnackbar } from "./app";
 import { connectSocket, disconnectSocket } from "../../socket";
+import { FetchFriends, FetchFriendRequests, FetchConversations } from "./app";
 
 const initialState = {
   isLoggedIn: false,
@@ -63,6 +64,10 @@ export function LoginUser(formValues) {
         window.localStorage.setItem("user_id", response.data.user_id);
 
         connectSocket(response.data.user_id);
+
+        dispatch(FetchConversations());
+        dispatch(FetchFriends());
+        dispatch(FetchFriendRequests());
 
         dispatch(
           showSnackbar({ severity: "success", message: response.data.message })
