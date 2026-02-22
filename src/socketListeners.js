@@ -184,4 +184,49 @@ export const initSocketListeners = (dispatch, userId) => {
   socket.on("typing_stop", ({ conversation_id }) => {
     dispatch(clearTyping(conversation_id));
   });
+  // Incoming Audio Call
+  socket.on("incoming_audio_call", ({ from, roomID, call_id }) => {
+    dispatch(
+      showSnackbar({
+        severity: "info",
+        message: "Incoming audio call...",
+      }),
+    );
+
+    dispatch({
+      type: "app/setIncomingCall",
+      payload: {
+        call_id,
+        from,
+        roomID,
+      },
+    });
+  });
+
+  // Call Accepted
+  socket.on("audio_call_accepted", ({ roomID }) => {
+  dispatch({
+    type: "app/setCallAccepted",
+    payload: roomID,
+  });
+
+  window.location.href = `/call-room/${roomID}`;
+});
+
+  // Call Rejected
+  socket.on("audio_call_rejected", () => {
+    dispatch({ type: "app/clearIncomingCall" });
+
+    dispatch(
+      showSnackbar({
+        severity: "warning",
+        message: "Call rejected",
+      }),
+    );
+  });
+
+  // Call Ended
+  socket.on("audio_call_ended", () => {
+    dispatch({ type: "app/endCall" });
+  });
 };

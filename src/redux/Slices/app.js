@@ -18,13 +18,17 @@ const initialState = {
   activeConversation: null,
   typing: {},
   replyTo: null,
+  call: {
+    incoming: null,
+    active: null,
+    accepted: false,
+  },
 };
 
 const slice = createSlice({
   name: "app",
   initialState,
   reducers: {
-    /* ───────── UI ───────── */
     toggleSidebar(state) {
       state.sidebar.open = !state.sidebar.open;
     },
@@ -49,7 +53,6 @@ const slice = createSlice({
       };
     },
 
-    /* ───────── USERS ───────── */
     updateUsers(state, action) {
       state.users = action.payload.users;
     },
@@ -62,7 +65,6 @@ const slice = createSlice({
       state.friendRequests = action.payload.requests;
     },
 
-    /* ───────── CONVERSATIONS ───────── */
     setConversations(state, action) {
       const { conversations, userId } = action.payload;
 
@@ -259,7 +261,6 @@ const slice = createSlice({
       }
     },
 
-    /* ───────── TYPING ───────── */
     setTyping(state, action) {
       const { conversation_id, userId } = action.payload;
       state.typing[conversation_id] = userId;
@@ -269,14 +270,41 @@ const slice = createSlice({
       delete state.typing[action.payload];
     },
 
-    /* ───────── RESET ───────── */
+    setIncomingCall(state, action) {
+      state.call.incoming = action.payload;
+    },
+
+    setActiveCall(state, action) {
+      state.call.active = action.payload;
+    },
+
+    setCallAccepted(state, action) {
+      state.call.accepted = true;
+
+      if (state.call.incoming) {
+        state.call.incoming.roomID = action.payload;
+      }
+    },
+
+    clearIncomingCall(state) {
+      state.call.incoming = null;
+    },
+
+    endCall(state) {
+      state.call = {
+        incoming: null,
+        active: null,
+        accepted: false,
+      };
+    },
+
     resetAppState() {
       return initialState;
     },
   },
 });
 
-/* ───────── THUNKS ───────── */
+/* THUNKS  */
 export const showSnackbar =
   ({ severity, message }) =>
   (dispatch) => {
@@ -343,4 +371,9 @@ export const {
   resetAppState,
   setReplyTo,
   clearReplyTo,
+  setIncomingCall,
+  setActiveCall,
+  setCallAccepted,
+  clearIncomingCall,
+  endCall,
 } = slice.actions;

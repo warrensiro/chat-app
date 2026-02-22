@@ -18,9 +18,7 @@ const StyledChatBox = styled(Box)(({ theme }) => ({
   },
 }));
 
-// ----------------------
-// UserComponent
-// ----------------------
+
 const UserComponent = ({ firstName, lastName, _id, online, img }) => {
   const [sent, setSent] = useState(false);
   const name = `${firstName} ${lastName}`;
@@ -70,9 +68,7 @@ const UserComponent = ({ firstName, lastName, _id, online, img }) => {
   );
 };
 
-// ----------------------
-// FriendRequestComponent
-// ----------------------
+
 const FriendRequestComponent = ({ firstName, lastName, _id, online, img, id }) => {
   const name = `${firstName} ${lastName}`;
   const theme = useTheme();

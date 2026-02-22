@@ -17,19 +17,34 @@ import {
   X,
 } from "phosphor-react";
 import StyledBadge from "../StyledBadge";
-import { toggleSidebar } from "../../redux/Slices/app";
+import { toggleSidebar, setActiveCall } from "../../redux/Slices/app";
 import { useDispatch } from "react-redux";
+import { getSocket } from "../../socket";
+import { useNavigate } from "react-router-dom";
 
 const Header = ({ conversation, onSearch }) => {
   const theme = useTheme();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
 
   if (!conversation) return null;
 
   const userId = localStorage.getItem("user_id");
+  const token = localStorage.getItem("token");
+
   const otherUser = conversation.participants.find((p) => p._id !== userId);
+
+  const handleStartCall = () => {
+    const socket = getSocket();
+
+    socket.emit("audio_call_request", {
+      to: otherUser._id,
+      conversation_id: conversation._id,
+    });
+  };
 
   const handleSearchChange = (e) => {
     const value = e.target.value;
@@ -39,7 +54,7 @@ const Header = ({ conversation, onSearch }) => {
 
   const handleToggleSideBar = () => {
     dispatch(toggleSidebar());
-  }
+  };
 
   return (
     <Box
@@ -59,10 +74,11 @@ const Header = ({ conversation, onSearch }) => {
         alignItems="center"
         sx={{ width: "100%", height: "100%" }}
       >
+        {/* USER INFO */}
         <Stack
-          direction={"row"}
+          direction="row"
           spacing={2}
-          onClick={() => dispatch(toggleSidebar())}
+          onClick={handleToggleSideBar}
           sx={{ cursor: "pointer" }}
         >
           <Box>
@@ -72,20 +88,21 @@ const Header = ({ conversation, onSearch }) => {
               variant="dot"
               online={otherUser?.status === "Online"}
             >
-              <Avatar alt={`${otherUser.firstName}`} src={otherUser.img} />
+              <Avatar alt={otherUser?.firstName} src={otherUser?.avatar} />
             </StyledBadge>
           </Box>
           <Stack spacing={0.2}>
             <Typography variant="subtitle">
-              {otherUser.firstName} {otherUser.lastName}
+              {otherUser?.firstName} {otherUser?.lastName}
             </Typography>
             <Typography variant="caption">
-              {otherUser.status || "Offline"}
+              {otherUser?.status || "Offline"}
             </Typography>
           </Stack>
         </Stack>
 
-        <Stack direction={"row"} alignItems={"center"} spacing={3}>
+        {/* ACTIONS */}
+        <Stack direction="row" alignItems="center" spacing={3}>
           {searchOpen ? (
             <>
               <InputBase
@@ -117,13 +134,18 @@ const Header = ({ conversation, onSearch }) => {
               <IconButton>
                 <VideoCamera />
               </IconButton>
-              <IconButton>
+
+              {/* AUDIO CALL BUTTON */}
+              <IconButton onClick={handleStartCall}>
                 <Phone />
               </IconButton>
+
               <IconButton onClick={() => setSearchOpen(true)}>
                 <MagnifyingGlass />
               </IconButton>
+
               <Divider orientation="vertical" flexItem />
+
               <IconButton onClick={handleToggleSideBar}>
                 <CaretDown />
               </IconButton>

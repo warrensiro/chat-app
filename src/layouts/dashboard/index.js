@@ -5,6 +5,8 @@ import Sidebar from "./Sidebar";
 import { useDispatch, useSelector } from "react-redux";
 import { connectSocket, getSocket } from "../../socket";
 import { showSnackbar } from "../../redux/Slices/app";
+import { initSocketListeners } from "../../socketListeners";
+import IncomingCallDialog from "../../components/IncomingCallDialog";
 
 const DashboardLayout = () => {
   const dispatch = useDispatch();
@@ -14,26 +16,29 @@ const DashboardLayout = () => {
   useEffect(() => {
     if (!isLoggedIn || !user_id) return;
 
-    // Get existing socket or create a new one
+    // Connect socket if not connected
     const socket = getSocket() || connectSocket(user_id);
 
-    // Define event handlers
+    // 🔥 Initialize ALL listeners (messages + calls)
+    initSocketListeners(dispatch, user_id);
+
+    // ---- Your existing friend handlers ----
     const handleNewFriendRequest = (data) => {
       dispatch(showSnackbar({ severity: "success", message: data.message }));
     };
+
     const handleRequestAccepted = (data) => {
       dispatch(showSnackbar({ severity: "success", message: data.message }));
     };
+
     const handleRequestSent = (data) => {
       dispatch(showSnackbar({ severity: "success", message: data.message }));
     };
 
-    // Register socket events
     socket.on("new_friend_request", handleNewFriendRequest);
     socket.on("request_accepted", handleRequestAccepted);
     socket.on("request_sent", handleRequestSent);
 
-    // Cleanup on unmount
     return () => {
       socket.off("new_friend_request", handleNewFriendRequest);
       socket.off("request_accepted", handleRequestAccepted);
@@ -46,10 +51,15 @@ const DashboardLayout = () => {
   }
 
   return (
-    <Stack direction="row">
-      <Sidebar />
-      <Outlet />
-    </Stack>
+    <>
+      {/* 🔥 Global Call UI */}
+      <IncomingCallDialog />
+
+      <Stack direction="row">
+        <Sidebar />
+        <Outlet />
+      </Stack>
+    </>
   );
 };
 
