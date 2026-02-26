@@ -17,7 +17,7 @@ import {
   X,
 } from "phosphor-react";
 import StyledBadge from "../StyledBadge";
-import { toggleSidebar, setActiveCall } from "../../redux/Slices/app";
+import { toggleSidebar, setOutgoingCall } from "../../redux/Slices/app";
 import { useDispatch } from "react-redux";
 import { getSocket } from "../../socket";
 import { useNavigate } from "react-router-dom";
@@ -40,7 +40,14 @@ const Header = ({ conversation, onSearch }) => {
   const handleStartCall = () => {
     const socket = getSocket();
 
-    socket.emit("audio_call_request", {
+    const tempCall = {
+      to: otherUser,
+      conversation_id: conversation._id,
+    };
+
+    dispatch(setOutgoingCall(tempCall));
+
+    socket.emit("call_request", {
       to: otherUser._id,
       conversation_id: conversation._id,
     });
@@ -131,11 +138,10 @@ const Header = ({ conversation, onSearch }) => {
             </>
           ) : (
             <>
-              <IconButton>
+              <IconButton onClick={handleStartCall}>
                 <VideoCamera />
               </IconButton>
 
-              {/* AUDIO CALL BUTTON */}
               <IconButton onClick={handleStartCall}>
                 <Phone />
               </IconButton>

@@ -7,6 +7,7 @@ import { connectSocket, getSocket } from "../../socket";
 import { showSnackbar } from "../../redux/Slices/app";
 import { initSocketListeners } from "../../socketListeners";
 import IncomingCallDialog from "../../components/IncomingCallDialog";
+import OutgoingCallDialog from "../../components/OutgoingCallDialog";
 
 const DashboardLayout = () => {
   const dispatch = useDispatch();
@@ -52,8 +53,9 @@ const DashboardLayout = () => {
 
   return (
     <>
-      {/* 🔥 Global Call UI */}
+      
       <IncomingCallDialog />
+      <OutgoingCallDialog />
 
       <Stack direction="row">
         <Sidebar />

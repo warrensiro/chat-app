@@ -13,6 +13,7 @@ import {
   updateMessageStatus,
   updateMessageReactions,
   deleteMessageFromConversation,
+  clearOutgoingCall,
 } from "./redux/Slices/app";
 import { store } from "./redux/store";
 
@@ -21,7 +22,10 @@ export const initSocketListeners = (dispatch, userId) => {
   if (!socket) return;
 
   // prevent duplicate listeners
-  socket.removeAllListeners();
+  socket.off("incoming_call");
+socket.off("call_accepted");
+socket.off("call_rejected");
+socket.off("call_ended");
 
   socket.on("request_sent", (data) => {
     dispatch(
@@ -185,11 +189,11 @@ export const initSocketListeners = (dispatch, userId) => {
     dispatch(clearTyping(conversation_id));
   });
   // Incoming Audio Call
-  socket.on("incoming_audio_call", ({ from, roomID, call_id }) => {
+  socket.on("incoming_call", ({ from, roomID, call_id, type }) => {
     dispatch(
       showSnackbar({
         severity: "info",
-        message: "Incoming audio call...",
+        message: "Incoming call...",
       }),
     );
 
@@ -199,34 +203,26 @@ export const initSocketListeners = (dispatch, userId) => {
         call_id,
         from,
         roomID,
+        type,
       },
     });
   });
 
   // Call Accepted
-  socket.on("audio_call_accepted", ({ roomID }) => {
-  dispatch({
-    type: "app/setCallAccepted",
-    payload: roomID,
+  socket.on("call_accepted", (data) => {
+    dispatch(clearOutgoingCall());
+    window.location.href = `/call-room/${data.roomID}`;
   });
 
-  window.location.href = `/call-room/${roomID}`;
-});
-
   // Call Rejected
-  socket.on("audio_call_rejected", () => {
-    dispatch({ type: "app/clearIncomingCall" });
-
-    dispatch(
-      showSnackbar({
-        severity: "warning",
-        message: "Call rejected",
-      }),
-    );
+  socket.on("call_rejected", () => {
+    dispatch(clearOutgoingCall());
+    dispatch(showSnackbar({ severity: "info", message: "Call rejected" }));
   });
 
   // Call Ended
-  socket.on("audio_call_ended", () => {
-    dispatch({ type: "app/endCall" });
+  socket.on("call_ended", () => {
+    dispatch({ type: "app/clearIncomingCall" });
+    dispatch(clearOutgoingCall())
   });
 };

@@ -22,6 +22,7 @@ const initialState = {
     incoming: null,
     active: null,
     accepted: false,
+    outgoing: null,
   },
 };
 
@@ -270,6 +271,10 @@ const slice = createSlice({
       delete state.typing[action.payload];
     },
 
+    setOutgoingCall(state, action) {
+      state.call.outgoing = action.payload;
+    },
+
     setIncomingCall(state, action) {
       state.call.incoming = action.payload;
     },
@@ -284,6 +289,10 @@ const slice = createSlice({
       if (state.call.incoming) {
         state.call.incoming.roomID = action.payload;
       }
+    },
+
+    clearOutgoingCall(state) {
+      state.call.outgoing = null;
     },
 
     clearIncomingCall(state) {
@@ -372,8 +381,10 @@ export const {
   setReplyTo,
   clearReplyTo,
   setIncomingCall,
+  setOutgoingCall,
   setActiveCall,
   setCallAccepted,
   clearIncomingCall,
+  clearOutgoingCall,
   endCall,
 } = slice.actions;
