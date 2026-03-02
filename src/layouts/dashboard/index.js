@@ -5,7 +5,7 @@ import Sidebar from "./Sidebar";
 import { useDispatch, useSelector } from "react-redux";
 import { connectSocket, getSocket } from "../../socket";
 import { showSnackbar } from "../../redux/Slices/app";
-import { initSocketListeners } from "../../socketListeners";
+// import { initSocketListeners } from "../../socketListeners";
 import IncomingCallDialog from "../../components/IncomingCallDialog";
 import OutgoingCallDialog from "../../components/OutgoingCallDialog";
 
@@ -21,29 +21,29 @@ const DashboardLayout = () => {
     const socket = getSocket() || connectSocket(user_id);
 
     // 🔥 Initialize ALL listeners (messages + calls)
-    initSocketListeners(dispatch, user_id);
+    // initSocketListeners(dispatch, user_id);
 
     // ---- Your existing friend handlers ----
-    const handleNewFriendRequest = (data) => {
-      dispatch(showSnackbar({ severity: "success", message: data.message }));
-    };
+    // const handleNewFriendRequest = (data) => {
+    //   dispatch(showSnackbar({ severity: "success", message: data.message }));
+    // };
 
-    const handleRequestAccepted = (data) => {
-      dispatch(showSnackbar({ severity: "success", message: data.message }));
-    };
+    // const handleRequestAccepted = (data) => {
+    //   dispatch(showSnackbar({ severity: "success", message: data.message }));
+    // };
 
-    const handleRequestSent = (data) => {
-      dispatch(showSnackbar({ severity: "success", message: data.message }));
-    };
+    // const handleRequestSent = (data) => {
+    //   dispatch(showSnackbar({ severity: "success", message: data.message }));
+    // };
 
-    socket.on("new_friend_request", handleNewFriendRequest);
-    socket.on("request_accepted", handleRequestAccepted);
-    socket.on("request_sent", handleRequestSent);
+    // socket.on("new_friend_request", handleNewFriendRequest);
+    // socket.on("request_accepted", handleRequestAccepted);
+    // socket.on("request_sent", handleRequestSent);
 
     return () => {
-      socket.off("new_friend_request", handleNewFriendRequest);
-      socket.off("request_accepted", handleRequestAccepted);
-      socket.off("request_sent", handleRequestSent);
+      socket?.off("new_friend_request");
+      socket?.off("request_accepted");
+      socket?.off("request_sent");
     };
   }, [isLoggedIn, user_id, dispatch]);
 

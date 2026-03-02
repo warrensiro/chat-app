@@ -284,10 +284,20 @@ const slice = createSlice({
     },
 
     setCallAccepted(state, action) {
+      const roomID = action.payload;
+
       state.call.accepted = true;
 
       if (state.call.incoming) {
-        state.call.incoming.roomID = action.payload;
+        state.call.incoming.roomID = roomID;
+        state.call.active = state.call.incoming;
+        state.call.incoming = null;
+      }
+
+      if (state.call.outgoing) {
+        state.call.outgoing.roomID = roomID;
+        state.call.active = state.call.outgoing;
+        state.call.outgoing = null;
       }
     },
 
@@ -304,6 +314,7 @@ const slice = createSlice({
         incoming: null,
         active: null,
         accepted: false,
+        outgoing: null,
       };
     },
 

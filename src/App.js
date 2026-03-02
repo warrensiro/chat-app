@@ -5,9 +5,14 @@ import { Snackbar } from "@mui/material";
 import React, { useEffect, useRef } from "react";
 import MuiAlert from "@mui/material/Alert";
 import { useDispatch, useSelector } from "react-redux";
-import { closeSnackbar, setConversations, setActiveConversation } from "./redux/Slices/app";
+import {
+  closeSnackbar,
+  setConversations,
+  setActiveConversation,
+} from "./redux/Slices/app";
 import { connectSocket, getSocket } from "./socket";
 import { initSocketListeners } from "./socketListeners";
+import { useNavigate } from "react-router-dom";
 
 const vertical = "bottom";
 const horizontal = "center";
@@ -24,56 +29,50 @@ function App() {
   );
   const user_id = window.localStorage.getItem("user_id");
   const socketInitialized = useRef(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoggedIn || !user_id || socketInitialized.current) return;
+    if (!isLoggedIn || !user_id) return;
 
     const socketInstance = connectSocket(user_id);
 
-    initSocketListeners(dispatch);
+    if (!socketInstance) return;
 
-    socketInstance.on("connect", () => {
+    // attach listeners once
+    initSocketListeners(dispatch, user_id, navigate);
+
+    const handleConnect = () => {
       console.log("Socket connected:", socketInstance.id);
 
-      // Fetch conversations only after socket is connected
       socketInstance.emit("get_direct_conversations", null, (conversations) => {
         const normalized = conversations.map((c) => ({
           ...c,
           messages: c.messages || [],
           unread: 0,
         }));
-        console.log("Loaded conversations:", conversations);
-        dispatch(setConversations(normalized));
 
-        // AUTO-FETCH MESSAGES FOR FIRST CONVERSATION
+        dispatch(
+          setConversations({ conversations: normalized, userId: user_id }),
+        );
+
         if (normalized.length > 0) {
-          socketInstance.emit(
-            "get_messages",
-            { conversation_id: normalized[0]._id },
-            (messages) => {
-              dispatch(
-                setActiveConversation({
-                  ...normalized[0],
-                  messages,
-                }),
-              );
-            },
+          dispatch(
+            setActiveConversation({
+              conversationId: normalized[0]._id,
+              userId: user_id,
+            }),
           );
         }
       });
-    });
+    };
 
-    
-
-    socketInitialized.current = true;
+    socketInstance.on("connect", handleConnect);
 
     return () => {
-      // cleanup all socket listeners on unmount
-      const socket = getSocket();
-      if (!socket) return;
-      socket.removeAllListeners();
+      socketInstance.off("connect", handleConnect);
+      socketInstance.disconnect();
     };
-  }, [isLoggedIn, user_id, dispatch]);
+  }, [isLoggedIn, user_id]);
 
   return (
     <>

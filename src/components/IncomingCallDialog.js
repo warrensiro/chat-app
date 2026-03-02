@@ -34,16 +34,11 @@ const IncomingCallDialog = () => {
       dispatch(clearIncomingCall());
     }, 30000);
 
-    // Stop if caller cancels
-    socket.on("call_rejected", () => {
-      stopRingtone();
-      dispatch(clearIncomingCall());
-    });
 
     return () => {
       stopRingtone();
       clearTimeout(timeoutRef.current);
-      socket.off("call_rejected");
+      // socket.off("call_rejected");
     };
   }, [incomingCall, dispatch]);
 

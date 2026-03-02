@@ -35,14 +35,16 @@ const Header = ({ conversation, onSearch }) => {
   const userId = localStorage.getItem("user_id");
   const token = localStorage.getItem("token");
 
-  const otherUser = conversation.participants.find((p) => p._id !== userId);
+  const otherUser = conversation?.participants?.find((p) => p._id !== userId);
 
-  const handleStartCall = () => {
+  const handleStartCall = (callType = "audio") => {
+    if (!otherUser?._id) return;
     const socket = getSocket();
 
     const tempCall = {
       to: otherUser,
       conversation_id: conversation._id,
+      type: callType,
     };
 
     dispatch(setOutgoingCall(tempCall));
@@ -50,6 +52,7 @@ const Header = ({ conversation, onSearch }) => {
     socket.emit("call_request", {
       to: otherUser._id,
       conversation_id: conversation._id,
+      type: callType,
     });
   };
 
@@ -138,11 +141,11 @@ const Header = ({ conversation, onSearch }) => {
             </>
           ) : (
             <>
-              <IconButton onClick={handleStartCall}>
+              <IconButton onClick={() => handleStartCall("video")}>
                 <VideoCamera />
               </IconButton>
 
-              <IconButton onClick={handleStartCall}>
+              <IconButton onClick={() => handleStartCall("audio")}>
                 <Phone />
               </IconButton>
 

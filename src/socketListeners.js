@@ -16,16 +16,18 @@ import {
   clearOutgoingCall,
 } from "./redux/Slices/app";
 import { store } from "./redux/store";
+import { useNavigate } from "react-router-dom";
 
-export const initSocketListeners = (dispatch, userId) => {
+export const initSocketListeners = (dispatch, userId, navigate) => {
   const socket = getSocket();
   if (!socket) return;
+  
 
   // prevent duplicate listeners
   socket.off("incoming_call");
-socket.off("call_accepted");
-socket.off("call_rejected");
-socket.off("call_ended");
+  socket.off("call_accepted");
+  socket.off("call_rejected");
+  socket.off("call_ended");
 
   socket.on("request_sent", (data) => {
     dispatch(
@@ -211,7 +213,7 @@ socket.off("call_ended");
   // Call Accepted
   socket.on("call_accepted", (data) => {
     dispatch(clearOutgoingCall());
-    window.location.href = `/call-room/${data.roomID}`;
+    navigate(`/call-room/${data.roomID}`);
   });
 
   // Call Rejected
@@ -223,6 +225,6 @@ socket.off("call_ended");
   // Call Ended
   socket.on("call_ended", () => {
     dispatch({ type: "app/clearIncomingCall" });
-    dispatch(clearOutgoingCall())
+    dispatch(clearOutgoingCall());
   });
 };
